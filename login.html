@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main>
+    <h1>Login</h1>
+    <form id="form">
+      <input id="email" type="email" placeholder="email" required><br>
+      <input id="pass" type="password" placeholder="password" required><br>
+      <button>Login</button>
+    </form>
+    <p>No account? <a href="#" id="signup">Sign up</a></p>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { signIn, signUp } from '/src/auth.js'
+    const form = document.getElementById('form')
+    form.addEventListener('submit', async e => {
+      e.preventDefault()
+      const { data, error } = await signIn(form.email.value, form.pass.value)
+      if (error) return alert(error.message)
+      location.href = '/'
+    })
+    document.getElementById('signup').onclick = async e => {
+      e.preventDefault()
+      const { data, error } = await signUp(form.email.value, form.pass.value)
+      if (error) return alert(error.message)
+      alert('Check email to confirm')
+    }
+  </script>
+</body>
+</html>

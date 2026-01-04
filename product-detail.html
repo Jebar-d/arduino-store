@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Product</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main id="root"></main>
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { getBySlug } from '/src/products.js'
+    import { addToCart } from '/src/cart.js'
+    import { onAuthChange } from '/src/auth.js'
+    import { mountViewer } from '/src/viewer3d.js'
+
+    const url = new URLSearchParams(location.search)
+    const slug = url.get('slug')
+    const { data: p, error } = await getBySlug(slug)
+    if (error) document.getElementById('root').innerText = 'Not found'
+    else {
+      document.getElementById('root').innerHTML = `
+        <h1>${p.name}</h1>
+        <img src="${p.img_url}" width="300">
+        <p>$${(p.price_cents / 100).toFixed(2)} – stock: ${p.stock}</p>
+        <p>${p.description}</p>
+        ${p.model_url ? `<canvas id="model-view" width="600" height="400"></canvas>` : ''}
+        <br><button id="add">Add to cart</button>
+      `
+      if (p.model_url) mountViewer(document.getElementById('model-view'), p.model_url)
+
+      let user
+      onAuthChange(u => user = u)
+      document.getElementById('add').onclick = async () => {
+        if (!user) return alert('Please login')
+        await addToCart(user.id, p.id)
+        alert('Added!')
+      }
+    }
+  </script>
+</body>
+</html>

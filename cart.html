@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cart</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main>
+    <h1>Your cart</h1>
+    <div id="items"></div>
+    <p>Total: <span id="total">0</span></p>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { loadCart } from '/src/cart.js'
+    import { onAuthChange } from '/src/auth.js'
+    import { removeFromCart } from '/src/cart.js'
+
+    let user
+    onAuthChange(async u => {
+      if (!u) return location.href = '/login.html'
+      user = u
+      render()
+    })
+
+    async function render() {
+      const { data, error } = await loadCart(user.id)
+      if (error) return console.error(error)
+      const box = document.getElementById('items')
+      box.innerHTML = ''
+      let total = 0
+      data.forEach(item => {
+        const sub = item.qty * (item.products.price_cents / 100)
+        total += sub
+        box.insertAdjacentHTML('beforeend', `
+          <div class="card">
+            ${item.products.name} x${item.qty} = $${sub.toFixed(2)}
+            <button data-id="${item.id}" class="remove">Remove</button>
+          </div>
+        `)
+      })
+      document.getElementById('total').textContent = '$' + total.toFixed(2)
+    }
+
+    document.addEventListener('click', async e => {
+      if (e.target.classList.contains('remove')) {
+        await removeFromCart(e.target.dataset.id)
+        render()
+      }
+    })
+  </script>
+</body>
+</html>

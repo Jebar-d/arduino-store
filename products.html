@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Products</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main>
+    <h1>Products</h1>
+    <section id="product-grid" class="grid"></section>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { listProducts } from '/src/products.js'
+    const { data, error } = await listProducts()
+    if (error) console.error(error)
+    else {
+      const grid = document.getElementById('product-grid')
+      data.forEach(p => {
+        grid.insertAdjacentHTML('beforeend', `
+          <article class="card">
+            <img src="${p.img_url}" alt="">
+            <h3><a href="/product-detail.html?slug=${p.slug}">${p.name}</a></h3>
+            <p>$${(p.price_cents / 100).toFixed(2)}</p>
+          </article>
+        `)
+      })
+    }
+  </script>
+</body>
+</html>
