@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Manage Products</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main class="container" id="admin-panel">
+    <h1>Manage Products</h1>
+    <p>Loading...</p>
+  </main>
+  
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { onAuthChange, supaAuth } from '/src/auth.js'
+    import { listProducts, deleteProduct } from '/src/products.js'
+    
+    // CHANGE TO YOUR EMAIL
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    
+    onAuthChange(async (user) => {
+      const panel = document.getElementById('admin-panel')
+      
+      if (!user) {
+        panel.innerHTML = '<h1>Admin Access</h1><p>Please <a href="/login.html">login</a> first.</p>'
+        return
+      }
+      
+      if (user.email !== ADMIN_EMAIL) {
+        panel.innerHTML = '<h1>Access Denied</h1><p>Not authorized.</p>'
+        return
+      }
+      
+      renderList()
+    })
+    
+    async function renderList() {
+      const panel = document.getElementById('admin-panel')
+      const { data: products, error } = await listProducts()
+      
+      if (error) {
+        panel.innerHTML = `<h1>Error</h1><p>${error.message}</p>`
+        return
+      }
+      
+      if (!products?.length) {
+        panel.innerHTML = '<h1>Manage Products</h1><p>No products. <a href="/admin.html">Add one</a></p>'
+        return
+      }
+      
+      panel.innerHTML = `
+        <h1>Manage Products (${products.length})</h1>
+        <p><a href="/admin.html">+ Add New</a></p>
+        <div id="list"></div>
+      `
+      
+      const list = document.getElementById('list')
+      products.forEach(p => {
+        list.insertAdjacentHTML('beforeend', `
+          <div class="card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding:1rem;">
+            <div>
+              <h3>${p.name}</h3>
+              <p style="color:#888; font-size:0.9rem;">${p.slug} | Stock: ${p.stock} | $${(p.price_cents/100).toFixed(2)}</p>
+            </div>
+            <div>
+              <a href="/product-detail.html?slug=${p.slug}" target="_blank" style="margin-right:1rem;">View</a>
+              <button onclick="del('${p.id}', '${p.name.replace(/'/g, "\\'")}')" 
+                      style="background:#ff4444; color:white; padding:0.5rem 1rem; border-radius:6px;">
+                Delete
+              </button>
+            </div>
+          </div>
+        `)
+      })
+    }
+    
+    window.del = async (id, name) => {
+      if (!confirm(`Delete "${name}"?`)) return
+      
+      const { error } = await deleteProduct(id)
+      if (error) {
+        alert('Error: ' + error.message)
+        return
+      }
+      
+      alert('Deleted!')
+      renderList()
+    }
+  </script>
+</body>
+</html>

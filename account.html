@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Account</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main class="container">
+    <h1>My Account</h1>
+    <form id="profile-form">
+      <input id="username" placeholder="Username" required><br>
+      <input id="full_name" placeholder="Full Name"><br>
+      <input id="phone" placeholder="Phone"><br>
+      <textarea id="address" placeholder="Shipping Address"></textarea><br>
+      <button type="submit">Save Profile</button>
+    </form>
+    <hr>
+    <h2>My Orders</h2>
+    <div id="orders">No orders yet.</div>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { onAuthChange } from '/src/auth.js'
+    import { getProfile, updateProfile } from '/src/profiles.js'
+    
+    let user
+    onAuthChange(async u=>{
+      if(!u) return location.href='/login.html'
+      user=u
+      const {data} = await getProfile(user.id)
+      if(data) {
+        document.getElementById('username').value = data.username||''
+        document.getElementById('full_name').value = data.full_name||''
+        document.getElementById('phone').value = data.phone||''
+        document.getElementById('address').value = data.address||''
+      }
+    })
+    
+    document.getElementById('profile-form').onsubmit = async e=>{
+      e.preventDefault()
+      await updateProfile(user.id, {
+        username: document.getElementById('username').value,
+        full_name: document.getElementById('full_name').value,
+        phone: document.getElementById('phone').value,
+        address: document.getElementById('address').value
+      })
+      alert('Profile saved!')
+    }
+  </script>
+</body>
+</html>

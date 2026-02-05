@@ -34,37 +34,87 @@ export function mountViewer(canvas, fileURL) {
 }
 
 function loadModel(url) {
-  const ext = url.split('.').pop().toLowerCase()
+  // Extract extension from URL or filename
+  const urlLower = url.toLowerCase()
+  let ext = ''
+  
+  if (urlLower.endsWith('.stl')) ext = 'stl'
+  else if (urlLower.endsWith('.obj')) ext = 'obj'
+  else if (urlLower.endsWith('.glb')) ext = 'glb'
+  else if (urlLower.endsWith('.gltf')) ext = 'gltf'
+  else {
+    // Try to get from URL path
+    const match = urlLower.match(/\.(stl|obj|glb|gltf)(?:\?|$)/)
+    ext = match ? match[1] : ''
+  }
+  
+  if (!ext) {
+    console.error('Cannot determine 3D file type from URL:', url)
+    return
+  }
+  
+  console.log('Loading 3D model, type:', ext, 'URL:', url)
+
   let loader
   if (ext === 'stl') loader = new STLLoader()
   else if (ext === 'obj') loader = new OBJLoader()
   else if (ext === 'glb' || ext === 'gltf') loader = new GLTFLoader()
-  else return console.warn('unsupported 3-D extension')
-
+  
   loader.load(
     url,
-    (geometry) => {
-      const mesh = geometry.isScene
-        ? geometry.scene
+    (result) => {
+      console.log('3D model loaded successfully')
+      
+      const mesh = result.isScene || result.scene 
+        ? result.scene || result 
         : new THREE.Mesh(
-            geometry,
-            new THREE.MeshStandardMaterial({ color: 0x29b6f6, metalness: 0.2, roughness: 0.6 })
+            result,
+            new THREE.MeshStandardMaterial({ 
+              color: 0x29b6f6, 
+              metalness: 0.3, 
+              roughness: 0.4 
+            })
           )
 
+      // Center and scale
       const box = new THREE.Box3().setFromObject(mesh)
       const size = box.getSize(new THREE.Vector3()).length()
       const center = box.getCenter(new THREE.Vector3())
+      
       mesh.position.sub(center)
-      const scale = 4 / size
+      const scale = size > 0 ? 5 / size : 1
       mesh.scale.setScalar(scale)
+
       scene.add(mesh)
       model = mesh
+      
+      // Auto-rotate for showcase
+      controls.autoRotate = true
+      controls.autoRotateSpeed = 2.0
     },
-    undefined,
-    (err) => console.error('3-D load error', err)
+    (progress) => {
+      console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%')
+    },
+    (err) => {
+      console.error('3D load error:', err)
+      // Show error on canvas
+      const canvas = renderer?.domElement
+      if (canvas) {
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.fillStyle = '#1c1c1f'
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+          ctx.fillStyle = '#f44'
+          ctx.font = '16px sans-serif'
+          ctx.fillText('Failed to load 3D model', 20, 50)
+          ctx.fillStyle = '#888'
+          ctx.font = '12px sans-serif'
+          ctx.fillText('Check console for details', 20, 80)
+        }
+      }
+    }
   )
 }
-
 function onResize() {
   const w = renderer.domElement.clientWidth
   const h = renderer.domElement.clientHeight

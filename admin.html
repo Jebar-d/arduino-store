@@ -2,59 +2,184 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <title>Admin - Add Product</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <header id="nav"></header>
-  <main>
-    <h1>Add product</h1>
-    <form id="form">
-      <input name="name" placeholder="Name" required><br>
-      <input name="slug" placeholder="slug-url" required><br>
-      <input name="price" type="number" step="0.01" placeholder="price USD" required><br>
-      <input name="stock" type="number" placeholder="stock" required><br>
-      <textarea name="desc" placeholder="description"></textarea><br>
-      <input id="img" type="file" accept="image/*" required><br>
-      <input id="model" type="file" accept=".stl,.obj,.glb,.gltf"><br>
-      <button>Add</button>
-    </form>
+  <main class="container" id="admin-panel">
+    <!-- Content injected by JS -->
   </main>
+  
   <script type="module" src="/src/main.js"></script>
   <script type="module">
-    import { onAuthChange } from '/src/auth.js'
+    import { onAuthChange, supaAuth } from '/src/auth.js'
     import { insertProduct } from '/src/products.js'
     import { uploadFile } from '/src/upload.js'
-
-    onAuthChange(u => {
-      if (!u) location.href = '/login.html'
+    
+    // CHANGE THESE TO YOUR ACTUAL LOGIN EMAIL AND A SECRET PASSWORD
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'  // ← your real email
+    const ADMIN_CODE = 'laginard54'                 // ← your secret code
+    
+    onAuthChange(async (user) => {
+      const panel = document.getElementById('admin-panel')
+      
+      // Not logged in at all
+      if (!user) {
+        panel.innerHTML = `
+          <h1>Admin Access</h1>
+          <p>Please <a href="/login.html">login</a> first.</p>
+        `
+        return
+      }
+      
+      // Logged in but not admin email
+      if (user.email !== ADMIN_EMAIL) {
+        panel.innerHTML = `
+          <h1>Access Denied</h1>
+          <p>You are not authorized.</p>
+          <p>Logged in as: ${user.email}</p>
+          <a href="/">Go Home</a>
+        `
+        return
+      }
+      
+      // Right email, now check admin code
+      panel.innerHTML = `
+        <h1>Admin Verification</h1>
+        <p>Welcome ${user.email}. Enter admin code:</p>
+        <input type="password" id="code" placeholder="Admin Code"><br>
+        <button onclick="verifyCode()" class="btn-primary">Continue</button>
+        <p id="error" style="color:#f44;"></p>
+      `
+      
+      window.verifyCode = () => {
+        if (document.getElementById('code').value === ADMIN_CODE) {
+          showAdminForm()
+        } else {
+          document.getElementById('error').textContent = 'Wrong code'
+        }
+      }
     })
-
-    document.getElementById('form').addEventListener('submit', async e => {
-      e.preventDefault()
-      const f = e.target
-      const imgFile = document.getElementById('img').files[0]
-      const modelFile = document.getElementById('model').files[0]
-      const [{ url: img }, { url: model }] = await Promise.all([
-        uploadFile(imgFile),
-        modelFile ? uploadFile(modelFile) : { url: null }
-      ])
-      const { data, error } = await insertProduct({
-        name: f.name.value,
-        slug: f.slug.value,
-        price_cents: Math.round(Number(f.price.value) * 100),
-        stock: Number(f.stock.value),
-        description: f.desc.value,
-        img_url: img,
-        model_url: model
+    
+    function showAdminForm() {
+      document.getElementById('admin-panel').innerHTML = `
+        <h1>Add New Product ✓</h1>
+        <form id="form" style="max-width:600px;">
+          <label>Product Name</label>
+          <input name="name" id="prod-name" placeholder="e.g., Arduino UNO R3" required><br>
+          
+          <label>URL Slug <small style="color:#888;">(auto-generated)</small></label>
+          <input name="slug" id="prod-slug" placeholder="arduino-uno-r3" required><br>
+          
+          <label>Price (USD)</label>
+          <input name="price" type="number" step="0.01" placeholder="27.50" required><br>
+          
+          <label>Stock Quantity</label>
+          <input name="stock" type="number" placeholder="25" required><br>
+          
+          <label>Category</label>
+          <select id="category" name="category" required>
+            <option value="">Select Category</option>
+          </select><br>
+          
+          <label>Description</label>
+          <textarea name="desc" placeholder="Brief product description..." rows="3"></textarea><br>
+          
+          <label>Product Image <small style="color:#888;">(JPG, PNG, WEBP)</small></label>
+          <input id="img" type="file" accept="image/*" required><br>
+          
+          <label>3D Model <small style="color:#888;">(optional: .stl, .obj, .glb)</small></label>
+          <input id="model" type="file" accept=".stl,.obj,.glb,.gltf"><br>
+          
+          <button type="submit" class="btn-primary">Add Product</button>
+        </form>
+        <div id="result"></div>
+      `
+      
+      // AUTO-GENERATE SLUG when name loses focus
+      document.getElementById('prod-name').addEventListener('blur', (e) => {
+        const name = e.target.value.trim()
+        if (!name) return
+        
+        const slug = name
+          .toLowerCase()                           // lowercase
+          .replace(/[^a-z0-9]+/g, '-')             // spaces/special → dashes
+          .replace(/^-|-$/g, '')                   // remove edge dashes
+          .substring(0, 50)                        // max 50 chars
+        
+        document.getElementById('prod-slug').value = slug
       })
-      if (error) return alert(error.message)
-      alert('Product added')
-      f.reset()
+      
+      // Allow manual editing of slug
+      document.getElementById('prod-slug').addEventListener('focus', () => {
+        // User wants to edit manually, leave it alone
+      })
+      
+      // Load categories
+      supaAuth.from('categories').select('*').then(({data}) => {
+        const sel = document.getElementById('category')
+        data?.forEach(c => sel.insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.name}</option>`))
+      })
+      
+      // Handle submit
+    document.getElementById('form').onsubmit = async (e) => {
+  e.preventDefault()
+  const result = document.getElementById('result')
+  result.innerHTML = '<p>Uploading...</p>'
+  
+  try {
+    const imgFile = document.getElementById('img').files[0]
+    const modelFile = document.getElementById('model').files[0]
+    
+    console.log('Image file:', imgFile?.name, imgFile?.size)
+    console.log('Model file:', modelFile?.name, modelFile?.size)
+    
+    // Upload image
+    result.innerHTML = '<p>Uploading image...</p>'
+    const imgRes = await uploadFile(imgFile)
+    console.log('Image upload result:', imgRes)
+    
+    if (imgRes.error) {
+      throw new Error('Image failed: ' + imgRes.error.message)
+    }
+    
+    // Upload model (optional)
+    let modelUrl = null
+    if (modelFile) {
+      result.innerHTML = '<p>Uploading 3D model...</p>'
+      const modelRes = await uploadFile(modelFile)
+      console.log('Model upload result:', modelRes)
+      if (modelRes.error) {
+        throw new Error('Model failed: ' + modelRes.error.message)
+      }
+      modelUrl = modelRes.url
+    }
+    
+    result.innerHTML = '<p>Saving product...</p>'
+    const { data, error } = await insertProduct({
+      name: e.target.name.value,
+      slug: e.target.slug.value,
+      price_cents: Math.round(parseFloat(e.target.price.value) * 100),
+      stock: parseInt(e.target.stock.value),
+      description: e.target.desc.value,
+      category_id: e.target.category.value,
+      img_url: imgRes.url,
+      model_url: modelUrl
     })
+    
+    if (error) throw error
+    
+    console.log('Product saved:', data)
+    result.innerHTML = `<p style="color:#0f0;">✅ Added! <a href="/product-detail.html?slug=${data.slug}">View</a></p>`
+    e.target.reset()
+    
+  } catch (err) {
+    console.error('Full error:', err)
+    result.innerHTML = `<p style="color:#f44;">Error: ${err.message}</p>`
+  }
+}
+    }
   </script>
 </body>
 </html>

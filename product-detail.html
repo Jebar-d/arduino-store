@@ -7,35 +7,73 @@
 </head>
 <body>
   <header id="nav"></header>
-  <main id="root"></main>
-  <script type="module" src="/src/main.js"></script>
+  <main class="container" id="root">
+    <p>Loading...</p>
+  </main>
+  
   <script type="module">
-    import { getBySlug } from '/src/products.js'
-    import { addToCart } from '/src/cart.js'
-    import { onAuthChange } from '/src/auth.js'
-    import { mountViewer } from '/src/viewer3d.js'
-
-    const url = new URLSearchParams(location.search)
-    const slug = url.get('slug')
-    const { data: p, error } = await getBySlug(slug)
-    if (error) document.getElementById('root').innerText = 'Not found'
-    else {
-      document.getElementById('root').innerHTML = `
-        <h1>${p.name}</h1>
-        <img src="${p.img_url}" width="300">
-        <p>$${(p.price_cents / 100).toFixed(2)} – stock: ${p.stock}</p>
-        <p>${p.description}</p>
-        ${p.model_url ? `<canvas id="model-view" width="600" height="400"></canvas>` : ''}
-        <br><button id="add">Add to cart</button>
-      `
-      if (p.model_url) mountViewer(document.getElementById('model-view'), p.model_url)
-
-      let user
-      onAuthChange(u => user = u)
-      document.getElementById('add').onclick = async () => {
-        if (!user) return alert('Please login')
-        await addToCart(user.id, p.id)
-        alert('Added!')
+    import { createClient } from '@supabase/supabase-js'
+    
+    const root = document.getElementById('root')
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+    
+    const slug = new URLSearchParams(location.search).get('slug')
+    
+    if (!slug) {
+      root.innerHTML = '<p>Error: No product specified</p>'
+      throw new Error('No slug')
+    }
+    
+    const { data: p, error } = await supa
+      .from('products')
+      .select('*')
+      .eq('slug', slug)
+      .single()
+    
+    if (error || !p) {
+      root.innerHTML = '<p>Product not found</p>'
+      throw new Error('Not found')
+    }
+    
+    const { data: { session } } = await supa.auth.getSession()
+    const user = session?.user
+    
+    root.innerHTML = `
+      <h1>${p.name}</h1>
+      <img src="${p.img_url}" width="300" style="border-radius:12px;">
+      <p style="font-size:1.5rem; color:var(--primary);">$${(p.price_cents/100).toFixed(2)}</p>
+      <p>${p.description}</p>
+      <p style="color:${user ? '#0f6' : '#f66'};">${user ? 'Logged in: ' + user.email : 'Not logged in'}</p>
+      <button id="add-btn" style="background:var(--primary); color:#000; padding:1rem 2rem; border:none; border-radius:8px; font-size:1.1rem; cursor:pointer;">
+        ADD TO CART
+      </button>
+      <p id="msg" style="margin-top:1rem;"></p>
+    `
+    
+    document.getElementById('add-btn').onclick = async () => {
+      if (!user) {
+        location.href = '/login.html'
+        return
+      }
+      
+      document.getElementById('msg').textContent = 'Adding...'
+      
+      const result = await supa.from('cart_items').upsert({
+        user_id: user.id,
+        product_id: p.id,
+        qty: 1
+      }, { onConflict: 'user_id,product_id' })
+      
+      if (result.error) {
+        document.getElementById('msg').textContent = 'Error: ' + result.error.message
+        document.getElementById('msg').style.color = '#f66'
+      } else {
+        document.getElementById('msg').textContent = '✓ Added to cart!'
+        document.getElementById('msg').style.color = '#0f6'
       }
     }
   </script>

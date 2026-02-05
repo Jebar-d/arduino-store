@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Wishlist</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main class="cart-container">
+    <h1>My Wishlist</h1>
+    <div id="items">Loading...</div>
+  </main>
+  
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    
+    const itemsEl = document.getElementById('items')
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+    
+    const { data: { session } } = await supa.auth.getSession()
+    
+    if (!session) {
+      itemsEl.innerHTML = '<div class="empty-state"><p>Please <a href="/login.html">login</a> to view your wishlist</p></div>'
+      throw new Error('No session')
+    }
+    
+    const { data: wishlist, error } = await supa
+      .from('wishlists')
+      .select('*, products(*)')
+      .eq('user_id', session.user.id)
+    
+    if (error) {
+      itemsEl.innerHTML = '<p style="color:#f44">Error: ' + error.message + '</p>'
+      throw error
+    }
+    
+    if (!wishlist || wishlist.length === 0) {
+      itemsEl.innerHTML = '<div class="empty-state"><h3>Your wishlist is empty</h3><p><a href="/products.html">Browse products</a> to save items</p></div>'
+    } else {
+      itemsEl.innerHTML = ''
+      
+      wishlist.forEach(item => {
+        const p = item.products
+        
+        itemsEl.innerHTML += `
+          <div class="wishlist-item">
+            <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
+            <div class="item-info">
+              <h3>${p.name}</h3>
+              <p class="item-price">$${(p.price_cents/100).toFixed(2)}</p>
+            </div>
+            <div class="item-actions">
+              <a href="/product-detail.html?slug=${p.slug}" class="btn-view">View</a>
+              <button class="btn-remove" onclick="removeWish('${item.id}')">♥ Remove</button>
+            </div>
+          </div>
+        `
+      })
+    }
+    
+    window.removeWish = async (id) => {
+      await supa.from('wishlists').delete().eq('id', id)
+      location.reload()
+    }
+  </script>
+</body>
+</html>

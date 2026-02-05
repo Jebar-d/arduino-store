@@ -3,56 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <title>Cart</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <header id="nav"></header>
-  <main>
-    <h1>Your cart</h1>
-    <div id="items"></div>
-    <p>Total: <span id="total">0</span></p>
+  <main class="cart-container">
+    <h1>Shopping Cart</h1>
+    <div id="items">Loading...</div>
   </main>
-  <script type="module" src="/src/main.js"></script>
+  
   <script type="module">
-    import { loadCart } from '/src/cart.js'
-    import { onAuthChange } from '/src/auth.js'
-    import { removeFromCart } from '/src/cart.js'
-
-    let user
-    onAuthChange(async u => {
-      if (!u) return location.href = '/login.html'
-      user = u
-      render()
-    })
-
-    async function render() {
-      const { data, error } = await loadCart(user.id)
-      if (error) return console.error(error)
-      const box = document.getElementById('items')
-      box.innerHTML = ''
-      let total = 0
-      data.forEach(item => {
-        const sub = item.qty * (item.products.price_cents / 100)
-        total += sub
-        box.insertAdjacentHTML('beforeend', `
-          <div class="card">
-            ${item.products.name} x${item.qty} = $${sub.toFixed(2)}
-            <button data-id="${item.id}" class="remove">Remove</button>
-          </div>
-        `)
-      })
-      document.getElementById('total').textContent = '$' + total.toFixed(2)
+    import { createClient } from '@supabase/supabase-js'
+    
+    const itemsEl = document.getElementById('items')
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+    
+    const { data: { session } } = await supa.auth.getSession()
+    
+    if (!session) {
+      itemsEl.innerHTML = '<div class="empty-state"><p>Please <a href="/login.html">login</a> to view your cart</p></div>'
+      throw new Error('No session')
     }
-
-    document.addEventListener('click', async e => {
-      if (e.target.classList.contains('remove')) {
-        await removeFromCart(e.target.dataset.id)
-        render()
-      }
-    })
+    
+    const { data: cartItems, error } = await supa
+      .from('cart_items')
+      .select('*, products(*)')
+      .eq('user_id', session.user.id)
+    
+    if (error) {
+      itemsEl.innerHTML = '<p style="color:#f44">Error: ' + error.message + '</p>'
+      throw error
+    }
+    
+    if (!cartItems || cartItems.length === 0) {
+      itemsEl.innerHTML = '<div class="empty-state"><h3>Your cart is empty</h3><p><a href="/products.html">Browse products</a> to add items</p></div>'
+    } else {
+      let subtotal = 0
+      itemsEl.innerHTML = ''
+      
+      cartItems.forEach(item => {
+        const p = item.products
+        const lineTotal = p.price_cents * item.qty
+        subtotal += lineTotal
+        
+        itemsEl.innerHTML += `
+          <div class="cart-item">
+            <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
+            <div class="item-info">
+              <h3>${p.name}</h3>
+              <p>Quantity: ${item.qty}</p>
+            </div>
+            <div class="item-price">$${(lineTotal/100).toFixed(2)}</div>
+            <div class="item-actions">
+              <a href="/product-detail.html?slug=${p.slug}" class="btn-view">View</a>
+              <button class="btn-remove" onclick="removeItem('${item.id}')">Remove</button>
+            </div>
+          </div>
+        `
+      })
+      
+      itemsEl.innerHTML += `
+        <div class="cart-summary">
+          <h3>Order Summary</h3>
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>$${(subtotal/100).toFixed(2)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Shipping</span>
+            <span>Free</span>
+          </div>
+          <div class="summary-row total">
+            <span>Total</span>
+            <span>$${(subtotal/100).toFixed(2)}</span>
+          </div>
+          <button class="btn-primary" style="width:100%; margin-top:1.5rem; padding:1rem;">Proceed to Checkout</button>
+        </div>
+      `
+    }
+    
+    window.removeItem = async (id) => {
+      await supa.from('cart_items').delete().eq('id', id)
+      location.reload()
+    }
   </script>
 </body>
 </html>
