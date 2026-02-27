@@ -62,14 +62,12 @@
           <div class="card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding:1rem;">
             <div>
               <h3>${p.name}</h3>
-              <p style="color:#888; font-size:0.9rem;">${p.slug} | Stock: ${p.stock} | $${(p.price_cents/100).toFixed(2)}</p>
+              <p style="color:#888; font-size:0.9rem;">${p.slug} | Stock: ${p.stock} | ₱${(p.price_cents/100).toFixed(2)}</p>
             </div>
-            <div>
-              <a href="/product-detail.html?slug=${p.slug}" target="_blank" style="margin-right:1rem;">View</a>
-              <button onclick="del('${p.id}', '${p.name.replace(/'/g, "\\'")}')" 
-                      style="background:#ff4444; color:white; padding:0.5rem 1rem; border-radius:6px;">
-                Delete
-              </button>
+            <div class="item-actions">
+              <a href="/product-detail.html?slug=${p.slug}" target="_blank" class="btn-view">View</a>
+              <a href="/admin-edit.html?id=${p.id}" class="btn-view" style="border-color:var(--success); color:var(--success);">Edit</a>
+              <button onclick="del('${p.id}', '${p.name.replace(/'/g, "\\'")}')" class="btn-remove">Delete</button>
             </div>
           </div>
         `)

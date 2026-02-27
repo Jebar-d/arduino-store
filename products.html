@@ -3,34 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <title>Products</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <!-- Header Navigation -->
   <header id="nav"></header>
-  <main>
-    <h1>Products</h1>
-    <section id="product-grid" class="grid"></section>
+  
+  <!-- Products Page -->
+  <main class="container">
+    <div class="page-header">
+      <h1>All Products</h1>
+      <p>Arduino boards, sensors, and 3D printed parts (Prices in PHP)</p>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters">
+      <select id="category-filter">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    
+    <!-- Product Grid -->
+    <div id="product-grid" class="product-grid"></div>
   </main>
+  
   <script type="module" src="/src/main.js"></script>
   <script type="module">
-    import { listProducts } from '/src/products.js'
-    const { data, error } = await listProducts()
-    if (error) console.error(error)
-    else {
+    import { createClient } from '@supabase/supabase-js'
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+    
+    // Load categories for filter
+    const { data: categories } = await supa.from('categories').select('*')
+    const catSelect = document.getElementById('category-filter')
+    categories?.forEach(c => {
+      catSelect.insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.name}</option>`)
+    })
+    
+    // Load and display products
+    async function loadProducts(categoryId = '') {
+      let query = supa.from('products').select('*').order('created_at', { ascending: false })
+      if (categoryId) query = query.eq('category_id', categoryId)
+      
+      const { data: products, error } = await query
+      
       const grid = document.getElementById('product-grid')
-      data.forEach(p => {
+      
+      if (error) {
+        grid.innerHTML = '<p style="color:#f44">Error loading products</p>'
+        return
+      }
+      
+      if (!products?.length) {
+        grid.innerHTML = '<p>No products found</p>'
+        return
+      }
+      
+      grid.innerHTML = ''
+      products.forEach((p, index) => {
         grid.insertAdjacentHTML('beforeend', `
-          <article class="card">
-            <img src="${p.img_url}" alt="">
-            <h3><a href="/product-detail.html?slug=${p.slug}">${p.name}</a></h3>
-            <p>$${(p.price_cents / 100).toFixed(2)}</p>
-          </article>
+          <a href="/product-detail.html?slug=${p.slug}" class="product-card">
+            <div class="product-image">
+              <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
+              ${p.model_url ? '<span class="badge-3d">3D</span>' : ''}
+            </div>
+            <div class="product-info">
+              <h3>${p.name}</h3>
+              <p class="product-price">₱${(p.price_cents/100).toFixed(2)}</p>
+              <p class="product-stock">${p.stock > 0 ? '✓ In Stock' : '✗ Out of Stock'}</p>
+            </div>
+          </a>
         `)
       })
     }
+    
+    loadProducts()
+    
+    // Filter by category
+    catSelect.onchange = (e) => loadProducts(e.target.value)
   </script>
 </body>
 </html>

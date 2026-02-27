@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit Product</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main class="container" id="edit-panel">
+    <h1>Edit Product</h1>
+    <p>Loading...</p>
+  </main>
+  
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { onAuthChange, supaAuth } from '/src/auth.js'
+    import { uploadFile } from '/src/upload.js'
+    
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    const ADMIN_CODE = 'laginard54'
+    
+    const url = new URLSearchParams(location.search)
+    const productId = url.get('id')
+    
+    onAuthChange(async (user) => {
+      const panel = document.getElementById('edit-panel')
+      
+      if (!user) {
+        panel.innerHTML = '<p>Please <a href="/login.html">login</a></p>'
+        return
+      }
+      
+      if (user.email !== ADMIN_EMAIL) {
+        panel.innerHTML = '<p>Access denied</p>'
+        return
+      }
+      
+      // Verify admin code
+      panel.innerHTML = `
+        <h1>Edit Product</h1>
+        <p>Enter admin code:</p>
+        <input type="password" id="code" placeholder="Admin Code">
+        <button onclick="verifyCode()" class="btn-primary">Continue</button>
+        <p id="error" style="color:#f44;"></p>
+      `
+      
+      window.verifyCode = async () => {
+        if (document.getElementById('code').value !== ADMIN_CODE) {
+          document.getElementById('error').textContent = 'Wrong code'
+          return
+        }
+        loadProductForm()
+      }
+    })
+    
+    async function loadProductForm() {
+      const panel = document.getElementById('edit-panel')
+      
+      // Fetch product
+      const { data: p, error } = await supaAuth
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single()
+      
+      if (error) {
+        panel.innerHTML = `<p>Error: ${error.message}</p>`
+        return
+      }
+      
+      // Fetch categories
+      const { data: categories } = await supaAuth.from('categories').select('*')
+      
+      panel.innerHTML = `
+        <h1>Edit: ${p.name}</h1>
+        <form id="edit-form" class="admin-form">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input name="name" value="${p.name}" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Slug</label>
+            <input name="slug" value="${p.slug}" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Price (PHP)</label>
+            <input name="price" type="number" step="0.01" value="${(p.price_cents/100).toFixed(2)}" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Stock</label>
+            <input name="stock" type="number" value="${p.stock}" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Category</label>
+            <select name="category" required>
+              ${categories.map(c => `<option value="${c.id}" ${c.id === p.category_id ? 'selected' : ''}>${c.name}</option>`).join('')}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="desc" rows="4">${p.description || ''}</textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>Current Image</label>
+            <img src="${p.img_url}" style="max-width:200px; border-radius:8px; display:block; margin-bottom:0.5rem;">
+            <input type="file" id="new-img" accept="image/*">
+            <small>Leave empty to keep current image</small>
+          </div>
+          
+          <div class="form-group">
+            <label>Current 3D Model</label>
+            <p>${p.model_url ? 'Yes - ' + p.model_url.split('/').pop() : 'None'}</p>
+            <input type="file" id="new-model" accept=".stl,.obj,.glb,.gltf">
+            <small>Leave empty to keep current model</small>
+          </div>
+          
+          <button type="submit" class="btn-primary">Save Changes</button>
+          <a href="/admin-manage.html" style="margin-left:1rem; color:var(--text2);">Cancel</a>
+        </form>
+        <p id="status"></p>
+      `
+      
+      document.getElementById('edit-form').onsubmit = async (e) => {
+        e.preventDefault()
+        const status = document.getElementById('status')
+        status.textContent = 'Saving...'
+        
+        const f = e.target
+        
+        // Handle image upload
+        let imgUrl = p.img_url
+        const newImg = document.getElementById('new-img').files[0]
+        if (newImg) {
+          const res = await uploadFile(newImg)
+          if (res.error) {
+            status.textContent = 'Image upload failed: ' + res.error.message
+            return
+          }
+          imgUrl = res.url
+        }
+        
+        // Handle model upload
+        let modelUrl = p.model_url
+        const newModel = document.getElementById('new-model').files[0]
+        if (newModel) {
+          const res = await uploadFile(newModel)
+          if (!res.error) modelUrl = res.url
+        }
+        
+        // Update product
+        const { error } = await supaAuth
+          .from('products')
+          .update({
+            name: f.name.value,
+            slug: f.slug.value,
+            price_cents: Math.round(parseFloat(f.price.value) * 100),
+            stock: parseInt(f.stock.value),
+            description: f.desc.value,
+            category_id: f.category.value,
+            img_url: imgUrl,
+            model_url: modelUrl
+          })
+          .eq('id', productId)
+        
+        if (error) {
+          status.textContent = 'Error: ' + error.message
+          status.style.color = '#f44'
+        } else {
+          status.textContent = '✓ Saved! Redirecting...'
+          status.style.color = '#0f6'
+          setTimeout(() => location.href = '/admin-manage.html', 1500)
+        }
+      }
+    }
+  </script>
+</body>
+</html>

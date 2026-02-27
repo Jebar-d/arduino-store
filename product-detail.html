@@ -4,15 +4,21 @@
   <meta charset="UTF-8" />
   <title>Product</title>
   <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/product-detail.css" />
 </head>
 <body>
+  <!-- Header Navigation -->
   <header id="nav"></header>
+  
+  <!-- Product Content -->
   <main class="container" id="root">
     <p>Loading...</p>
   </main>
   
+  <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
+    import { mountViewer } from './src/viewer3d.js'
     
     const root = document.getElementById('root')
     
@@ -30,7 +36,7 @@
     
     const { data: p, error } = await supa
       .from('products')
-      .select('*')
+      .select('*, categories(name)')
       .eq('slug', slug)
       .single()
     
@@ -43,37 +49,131 @@
     const user = session?.user
     
     root.innerHTML = `
-      <h1>${p.name}</h1>
-      <img src="${p.img_url}" width="300" style="border-radius:12px;">
-      <p style="font-size:1.5rem; color:var(--primary);">$${(p.price_cents/100).toFixed(2)}</p>
-      <p>${p.description}</p>
-      <p style="color:${user ? '#0f6' : '#f66'};">${user ? 'Logged in: ' + user.email : 'Not logged in'}</p>
-      <button id="add-btn" style="background:var(--primary); color:#000; padding:1rem 2rem; border:none; border-radius:8px; font-size:1.1rem; cursor:pointer;">
-        ADD TO CART
-      </button>
-      <p id="msg" style="margin-top:1rem;"></p>
+      <div class="breadcrumb">
+        <a href="/">Home</a> / 
+        <a href="/products.html">Products</a> / 
+        <span>${p.name}</span>
+      </div>
+      
+      <div class="product-detail">
+        <div class="gallery-container">
+          <div class="product-gallery">
+            <div class="gallery-viewer active" id="view-2d">
+              <img src="${p.img_url}" alt="${p.name}" class="main-image">
+            </div>
+            ${p.model_url ? `
+              <div class="gallery-viewer" id="view-3d">
+                <canvas id="model-view"></canvas>
+              </div>
+            ` : ''}
+          </div>
+
+          ${p.model_url ? `
+            <div class="view-toggles">
+              <button class="view-toggle-btn active" id="btn-2d">
+                📷 2D View
+              </button>
+              <button class="view-toggle-btn" id="btn-3d">
+                🎯 3D View
+              </button>
+            </div>
+          ` : ''}
+        </div>
+        
+        <div class="product-details">
+          <span class="category-tag">${p.categories?.name || 'Uncategorized'}</span>
+          <h1>${p.name}</h1>
+          <p class="detail-price">₱${(p.price_cents/100).toFixed(2)}</p>
+          <p class="detail-stock">${p.stock > 0 ? `✓ In Stock (${p.stock} available)` : '✗ Out of Stock'}</p>
+          
+          <div class="detail-description">
+            <h3>Description</h3>
+            <p>${p.description || 'No description available.'}</p>
+          </div>
+          
+          <div class="detail-actions">
+            ${user 
+              ? `<button id="add-btn" class="btn-primary btn-large">Add to Cart</button>`
+              : `<a href="/login.html" class="btn-primary btn-large">Login to Purchase</a>`
+            }
+            <button id="wish-btn" class="btn-secondary btn-large">♥ Save</button>
+          </div>
+          
+          <p id="msg" class="action-message"></p>
+        </div>
+      </div>
     `
     
-    document.getElementById('add-btn').onclick = async () => {
+    // View toggle
+    if (p.model_url) {
+      const btn2d = document.getElementById('btn-2d')
+      const btn3d = document.getElementById('btn-3d')
+      const view2d = document.getElementById('view-2d')
+      const view3d = document.getElementById('view-3d')
+      const canvas = document.getElementById('model-view')
+
+      btn2d.onclick = () => {
+        view2d.classList.add('active')
+        view3d.classList.remove('active')
+        btn2d.classList.add('active')
+        btn3d.classList.remove('active')
+      }
+
+      btn3d.onclick = () => {
+        view3d.classList.add('active')
+        view2d.classList.remove('active')
+        btn3d.classList.add('active')
+        btn2d.classList.remove('active')
+        
+        if (!canvas.hasAttribute('data-loaded')) {
+          mountViewer(canvas, p.model_url)
+          canvas.setAttribute('data-loaded', 'true')
+        }
+      }
+    }
+    
+    // Add to cart handler
+    if (user) {
+      document.getElementById('add-btn').onclick = async () => {
+        const msg = document.getElementById('msg')
+        msg.textContent = 'Adding...'
+        msg.className = 'action-message'
+        
+        const result = await supa.from('cart_items').upsert({
+          user_id: user.id,
+          product_id: p.id,
+          qty: 1
+        }, { onConflict: 'user_id,product_id' })
+        
+        if (result.error) {
+          msg.textContent = 'Error: ' + result.error.message
+          msg.className = 'action-message error'
+        } else {
+          msg.textContent = '✓ Added to cart!'
+          msg.className = 'action-message success'
+        }
+      }
+    }
+    
+    // Wishlist handler
+    document.getElementById('wish-btn').onclick = async () => {
       if (!user) {
         location.href = '/login.html'
         return
       }
       
-      document.getElementById('msg').textContent = 'Adding...'
-      
-      const result = await supa.from('cart_items').upsert({
+      const msg = document.getElementById('msg')
+      const result = await supa.from('wishlists').upsert({
         user_id: user.id,
-        product_id: p.id,
-        qty: 1
+        product_id: p.id
       }, { onConflict: 'user_id,product_id' })
       
       if (result.error) {
-        document.getElementById('msg').textContent = 'Error: ' + result.error.message
-        document.getElementById('msg').style.color = '#f66'
+        msg.textContent = 'Error: ' + result.error.message
+        msg.className = 'action-message error'
       } else {
-        document.getElementById('msg').textContent = '✓ Added to cart!'
-        document.getElementById('msg').style.color = '#0f6'
+        msg.textContent = '♥ Saved to wishlist!'
+        msg.className = 'action-message success'
       }
     }
   </script>

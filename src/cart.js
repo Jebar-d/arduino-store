@@ -1,5 +1,6 @@
 import { supaDB } from './db.js'
 
+// Cart retrieval
 export async function loadCart(userId) {
   const { data, error } = await supaDB
     .from('cart_items')
@@ -8,6 +9,7 @@ export async function loadCart(userId) {
   return { data, error }
 }
 
+// Cart modification
 export async function addToCart(userId, productId, qty = 1) {
   const { data, error } = await supaDB.from('cart_items').upsert(
     { user_id: userId, product_id: productId, qty },

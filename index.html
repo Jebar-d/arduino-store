@@ -4,24 +4,96 @@
   <meta charset="UTF-8" />
   <title>Arduino Store</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
-  <header id="nav"></header>
-<main class="container" style="text-align: center; padding-top: 4rem;">
-  <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">Arduino Store</h1>
-  <p style="color: var(--text2); font-size: 1.2rem; margin-bottom: 2rem;">
-    DIY boards, sensors & 3-D printed parts
-  </p>
-  <a href="/products.html" 
-     style="display: inline-block; background: var(--primary); color: #000; 
-            padding: 1rem 2rem; border-radius: var(--radius); font-weight: 600; 
-            text-decoration: none; font-size: 1.1rem;">
-    Browse Products →
-  </a>
-</main>
+  <!-- Header Navigation -->
+  <header id="nav">
+    <a href="/" class="logo-link">
+      <img src="/public/logo1.png" alt="Arduino Store" class="header-logo" style="height: 2em;">
+    </a>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-banner">
+    <div class="hero-content">
+      <h1>Welcome to Arduino Store</h1>
+      <p>Discover premium DIY boards, sensors, and 3D-printed parts for your next project</p>
+      <div class="hero-buttons">
+        <a href="/products.html" class="btn-hero-primary">Browse Products</a>
+        <button class="btn-hero-secondary" onclick="document.querySelector('.featured-grid').scrollIntoView({behavior: 'smooth'})">
+          Featured Items ↓
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- Categories Section -->
+    <h2 class="section-title">Shop by Category</h2>
+    <div class="categories-grid">
+      <div class="category-card" onclick="location.href='/products.html'">
+        <div class="category-icon">🖥️</div>
+        <h3>Boards</h3>
+      </div>
+      <div class="category-card" onclick="location.href='/products.html'">
+        <div class="category-icon">📡</div>
+        <h3>Sensors</h3>
+      </div>
+      <div class="category-card" onclick="location.href='/products.html'">
+        <div class="category-icon">🔧</div>
+        <h3>Actuators</h3>
+      </div>
+    </div>
+
+    <!-- Featured Products Section -->
+    <h2 class="section-title">Featured Products</h2>
+    <div class="featured-grid" id="featured-grid">
+      <p>Loading products...</p>
+    </div>
+  </main>
+
   <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+    
+    const grid = document.getElementById('featured-grid')
+    
+    const { data: products, error } = await supa
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(6)
+    
+    if (error || !products?.length) {
+      grid.innerHTML = '<p>No products available</p>'
+      throw new Error('Failed to load products')
+    }
+    
+    grid.innerHTML = products.map((p, index) => `
+      <a href="/product-detail.html?slug=${p.slug}" class="featured-card" style="animation-delay: ${index * 0.1}s">
+        <div class="featured-image">
+          <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
+          ${p.model_url ? '<div class="featured-badge">3D</div>' : '<div class="featured-badge">NEW</div>'}
+        </div>
+        <div class="featured-content">
+          <h3>${p.name}</h3>
+          <p>${p.description?.substring(0, 80) || 'Premium Arduino component'}...</p>
+          <div class="featured-price">₱${(p.price_cents/100).toFixed(2)}</div>
+          <div class="featured-footer">
+            <button onclick="event.preventDefault(); location.href='/product-detail.html?slug=${p.slug}'">View Details</button>
+            <button class="wishlist-btn" onclick="event.preventDefault()" title="Add to wishlist">♡</button>
+          </div>
+        </div>
+      </a>
+    `).join('')
+  </script>
 </body>
 </html>
