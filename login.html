@@ -3,99 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <title>Login - Arduino Store</title>
+  <link rel="icon" type="image/png" href="/public/logo2.png">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+
+  <!-- PAGE LOADER -->
+  <div id="page-loader">
+    <img src="/public/logo2.png" alt="Loading" class="loader-logo" onerror="this.style.display='none'">
+    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+    <span class="loader-text">Arduino Store</span>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
   <header id="nav"></header>
-  
+
   <main class="auth-container">
     <div class="auth-card">
       <h1>Welcome Back</h1>
       <p class="auth-subtitle">Sign in to your account</p>
-      
-      <form id="login-form" class="auth-form">
+
+      <div id="login-form" class="auth-form">
         <div class="form-group">
           <label for="email">Email</label>
           <input id="email" type="email" placeholder="you@example.com" required>
         </div>
-        
+
         <div class="form-group">
           <label for="password">Password</label>
           <input id="password" type="password" placeholder="••••••••" required>
         </div>
-        
-        <button type="submit" class="auth-button">Sign In</button>
-        
+
+        <button id="login-btn" class="auth-button" onclick="doLogin()">Sign In</button>
+
         <p class="auth-footer">
           Don't have an account? <a href="/signup.html">Create one</a>
         </p>
-        
+
         <p id="status" class="auth-status"></p>
-      </form>
+      </div>
     </div>
   </main>
-  
+
   <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
-    
+
     const supa = createClient(
       'https://tyhocgrjwxswxzzfvwct.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
     )
-    
-    document.getElementById('login-form').onsubmit = async (e) => {
-      e.preventDefault()
-      const status = document.getElementById('status')
-      status.textContent = 'Signing in...'
-      status.className = 'auth-status'
-      
-      const email = document.getElementById('email').value
-      const password = document.getElementById('password').value
-      
-      // Step 1: Sign in
-      const { data, error } = await supa.auth.signInWithPassword({
-        email: email,
-        password: password
-      })
-      
-      if (error) {
-        status.textContent = error.message
+
+    // Page loader
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var loader = document.getElementById('page-loader')
+        if (loader) loader.classList.add('hidden')
+      }, 600)
+    })
+
+    // Toast
+    window.showToast = function(title, msg, type, duration) {
+      msg = msg || ''; type = type || 'info'; duration = duration || 3500
+      var icons = { success: '&#10003;', error: '&#10005;', info: '&#9432;' }
+      var container = document.getElementById('toast-container')
+      var toast = document.createElement('div')
+      toast.className = 'toast ' + type
+      toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span>'
+        + '<div class="toast-title">' + title + '</div>'
+        + (msg ? '<div class="toast-msg">' + msg + '</div>' : '')
+      container.appendChild(toast)
+      setTimeout(function() {
+        toast.classList.add('hiding')
+        setTimeout(function() { toast.remove() }, 300)
+      }, duration)
+    }
+
+    window.doLogin = async function() {
+      var btn = document.getElementById('login-btn')
+      var status = document.getElementById('status')
+      var email = document.getElementById('email').value
+      var password = document.getElementById('password').value
+
+      if (!email || !password) {
+        showToast('Missing fields', 'Please enter your email and password.', 'error')
+        return
+      }
+
+      btn.classList.add('btn-loading')
+      btn.textContent = 'Signing in...'
+      status.textContent = ''
+
+      var res = await supa.auth.signInWithPassword({ email, password })
+
+      if (res.error) {
+        btn.classList.remove('btn-loading')
+        btn.textContent = 'Sign In'
+        showToast('Login failed', res.error.message, 'error')
+        status.textContent = res.error.message
         status.className = 'auth-status error'
         return
       }
-      
-      // Step 2: Check if email is verified
-      if (!data.user.email_confirmed_at) {
-        status.innerHTML = `
-          <span style="color:#f66">Email not verified!</span><br>
-          <small>Please check your email and click the confirmation link.<br>
-          <a href="#" onclick="resendEmail('${email}')" style="color:var(--primary)">Resend confirmation email</a></small>
-        `
-        // Sign out immediately since not verified
+
+      if (!res.data.user.email_confirmed_at) {
         await supa.auth.signOut()
+        btn.classList.remove('btn-loading')
+        btn.textContent = 'Sign In'
+        status.innerHTML = '<span style="color:#f66">Email not verified!</span><br>'
+          + '<small>Check your inbox and click the confirmation link.<br>'
+          + '<a href="#" onclick="resendEmail(\'' + email + '\')" style="color:var(--primary)">Resend email</a></small>'
         return
       }
-      
-      // Success - redirect
-      status.textContent = 'Success! Redirecting...'
-      status.className = 'auth-status success'
-      setTimeout(() => location.href = '/', 1000)
+
+      showToast('Welcome back!', 'You are now signed in. Redirecting...', 'success')
+      setTimeout(function() { location.href = '/' }, 1200)
     }
-    
-    window.resendEmail = async (email) => {
-      const status = document.getElementById('status')
-      status.textContent = 'Resending...'
-      
-      const { error } = await supa.auth.resend({
-        type: 'signup',
-        email: email
-      })
-      
-      if (error) {
-        status.textContent = 'Error: ' + error.message
+
+    // Allow Enter key
+    document.getElementById('password').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') window.doLogin()
+    })
+
+    window.resendEmail = async function(email) {
+      var res = await supa.auth.resend({ type: 'signup', email })
+      if (res.error) {
+        showToast('Error', res.error.message, 'error')
       } else {
-        status.innerHTML = '<span style="color:#0f6">Confirmation email resent!</span>'
+        showToast('Email sent!', 'Confirmation email resent. Check your inbox.', 'success')
       }
     }
   </script>

@@ -8,6 +8,16 @@
   <link rel="stylesheet" href="/src/product-detail.css" />
 </head>
 <body>
+
+  <!-- PAGE LOADER -->
+  <div id="page-loader">
+    <img src="/public/logo2.png" alt="Loading" class="loader-logo" onerror="this.style.display='none'">
+    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+    <span class="loader-text">Arduino Store</span>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
   <!-- Header Navigation -->
   <header id="nav"></header>
   
@@ -178,5 +188,6 @@
       }
     }
   </script>
+  <script>window.addEventListener("load",function(){setTimeout(function(){var l=document.getElementById("page-loader");if(l)l.classList.add("hidden")},600)})</script>
 </body>
 </html>

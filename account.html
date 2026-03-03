@@ -7,6 +7,16 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+
+  <!-- PAGE LOADER -->
+  <div id="page-loader">
+    <img src="/public/logo2.png" alt="Loading" class="loader-logo" onerror="this.style.display='none'">
+    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+    <span class="loader-text">Arduino Store</span>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
   <header id="nav"></header>
   <main class="container">
     <h1>My Account</h1>
@@ -50,5 +60,6 @@
       alert('Profile saved!')
     }
   </script>
+  <script>window.addEventListener("load",function(){setTimeout(function(){var l=document.getElementById("page-loader");if(l)l.classList.add("hidden")},600)})</script>
 </body>
 </html>
