@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verify Email - Arduino Store</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  
+  <main class="auth-container">
+    <div class="auth-card" style="text-align:center;">
+      <h1>📧 Verify Your Email</h1>
+      <p>Please check your inbox and click the confirmation link we sent you.</p>
+      
+      <p id="email-display" style="color:var(--text2); margin:1rem 0;"></p>
+      
+      <button onclick="resend()" class="btn-primary" style="margin:1rem;">Resend Email</button>
+      <br>
+      <a href="/login.html" style="color:var(--text2);">Back to Login</a>
+      
+      <p id="status" style="margin-top:1rem;"></p>
+    </div>
+  </main>
+  
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+    
+    const { data: { session } } = await supa.auth.getSession()
+    
+    if (!session) {
+      location.href = '/login.html'
+    } else {
+      document.getElementById('email-display').textContent = session.user.email
+    }
+    
+    window.resend = async () => {
+      const status = document.getElementById('status')
+      status.textContent = 'Sending...'
+      
+      const { error } = await supa.auth.resend({
+        type: 'signup',
+        email: session.user.email
+      })
+      
+      status.textContent = error ? 'Error: ' + error.message : '✓ Email sent!'
+    }
+  </script>
+</body>
+</html>
