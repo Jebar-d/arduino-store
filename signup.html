@@ -269,9 +269,10 @@
         return
       }
 
-      // Update profile
+      // ✅ FIXED: Use upsert instead of update so the profile row is created properly
       try {
-        await supa.from('profiles').update({
+        const { error: profileError } = await supa.from('profiles').upsert({
+          id: authRes.data.user.id,
           username,
           first_name,
           middle_name: document.getElementById('middle_name').value || null,
@@ -281,8 +282,14 @@
           address,
           terms_accepted: true,
           rules_accepted: true
-        }).eq('id', authRes.data.user.id)
-      } catch(e) {}
+        }, { onConflict: 'id' })
+
+        if (profileError) {
+          console.error('Profile save error:', profileError.message)
+        }
+      } catch(e) {
+        console.error('Profile save exception:', e)
+      }
 
       btn.classList.remove('btn-loading')
       btn.textContent = 'Create Account'
