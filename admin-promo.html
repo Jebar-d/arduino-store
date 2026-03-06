@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Send Promo - Admin</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header id="nav"></header>
+  <main class="container">
+    <h1>Send Promo Notification</h1>
+    
+    <form id="promo-form" class="admin-form" style="max-width: 600px;">
+      <div class="form-group">
+        <label>Title</label>
+        <input id="title" placeholder="🎉 Weekend Sale!" required>
+      </div>
+      
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="message" rows="3" placeholder="Get 20% off all Arduino boards this weekend!" required></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Target</label>
+        <select id="target">
+          <option value="all">All Users</option>
+          <option value="wishlist">Users with Wishlist Items</option>
+          <option value="cart">Users with Cart Items</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Action Link (optional)</label>
+        <input id="action_url" placeholder="/products.html">
+      </div>
+      
+      <div class="form-group">
+        <label>Action Text</label>
+        <input id="action_text" placeholder="Shop Now">
+      </div>
+      
+      <button type="submit" class="btn-primary">Send to All Users</button>
+      <p id="status"></p>
+    </form>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'">
+        <p>Your one-stop shop for Arduino components, boards, and maker supplies in the Philippines.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Shop</h4>
+        <a href="/products.html">All Products</a>
+        <a href="/products.html">Boards</a>
+        <a href="/products.html">Sensors</a>
+        <a href="/products.html">Starter Kits</a>
+      </div>
+      <div class="footer-col">
+        <h4>Account</h4>
+        <a href="/login.html">Login</a>
+        <a href="/signup.html">Sign Up</a>
+        <a href="/account.html">My Account</a>
+        <a href="/wishlist.html">Wishlist</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="#">FAQ</a>
+        <a href="#">Shipping Info</a>
+        <a href="#">Returns Policy</a>
+        <a href="#">Contact Us</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 Arduino Store. Built with love for makers in the Philippines.</p>
+    </div>
+  </footer>
+  
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    )
+    
+    // Check admin
+    const { data: { session } } = await supa.auth.getSession()
+    if (!session || session.user.email !== 'your-email@example.com') {
+      location.href = '/'
+    }
+    
+    document.getElementById('promo-form').onsubmit = async (e) => {
+      e.preventDefault()
+      const status = document.getElementById('status')
+      status.textContent = 'Sending...'
+      
+      // Get target users
+      let userIds = []
+      const target = document.getElementById('target').value
+      
+      if (target === 'all') {
+        const { data } = await supa.from('profiles').select('id')
+        userIds = data?.map(p => p.id) || []
+      } else if (target === 'wishlist') {
+        const { data } = await supa.from('wishlists').select('user_id')
+        userIds = [...new Set(data?.map(w => w.user_id))]
+      } else if (target === 'cart') {
+        const { data } = await supa.from('cart_items').select('user_id')
+        userIds = [...new Set(data?.map(c => c.user_id))]
+      }
+      
+      // Create notifications
+      const notifications = userIds.map(uid => ({
+        user_id: uid,
+        type: 'promo',
+        title: document.getElementById('title').value,
+        message: document.getElementById('message').value,
+        data: {
+          action: document.getElementById('action_url').value || '/products.html',
+          action_text: document.getElementById('action_text').value || 'View'
+        }
+      }))
+      
+      // Batch insert (in chunks of 100)
+      const chunkSize = 100
+      for (let i = 0; i < notifications.length; i += chunkSize) {
+        const chunk = notifications.slice(i, i + chunkSize)
+        const { error } = await supa.from('notifications').insert(chunk)
+        if (error) console.error('Batch error:', error)
+      }
+      
+      status.textContent = `✓ Sent to ${userIds.length} users!`
+    }
+  </script>
+</body>
+</html>
