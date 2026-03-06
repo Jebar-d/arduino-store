@@ -79,6 +79,7 @@
     </div>
   </footer>
   
+  <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
     
@@ -88,52 +89,120 @@
     )
     
     // Check admin
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    const ADMIN_CODE = 'laginard54'
     const { data: { session } } = await supa.auth.getSession()
-    if (!session || session.user.email !== 'your-email@example.com') {
-      location.href = '/'
+    
+    const main = document.querySelector('main')
+    if (!session) {
+      main.innerHTML = '<h1>Admin Access</h1><p>Please <a href="/login.html">login</a> first.</p>'
+      return
     }
     
-    document.getElementById('promo-form').onsubmit = async (e) => {
-      e.preventDefault()
-      const status = document.getElementById('status')
-      status.textContent = 'Sending...'
-      
-      // Get target users
-      let userIds = []
-      const target = document.getElementById('target').value
-      
-      if (target === 'all') {
-        const { data } = await supa.from('profiles').select('id')
-        userIds = data?.map(p => p.id) || []
-      } else if (target === 'wishlist') {
-        const { data } = await supa.from('wishlists').select('user_id')
-        userIds = [...new Set(data?.map(w => w.user_id))]
-      } else if (target === 'cart') {
-        const { data } = await supa.from('cart_items').select('user_id')
-        userIds = [...new Set(data?.map(c => c.user_id))]
+    if (session.user.email !== ADMIN_EMAIL) {
+      main.innerHTML = '<h1>Access Denied</h1><p>Not authorized.</p>'
+      return
+    }
+    
+    // Right email, now check admin code
+    main.innerHTML = `
+      <h1>Admin Verification</h1>
+      <p>Welcome ${session.user.email}. Enter admin code:</p>
+      <input type="password" id="code" placeholder="Admin Code"><br>
+      <button onclick="verifyCode()" class="btn-primary">Continue</button>
+      <p id="error" style="color:#f44;"></p>
+    `
+    
+    window.verifyCode = () => {
+      if (document.getElementById('code').value === ADMIN_CODE) {
+        showPromoForm()
+      } else {
+        document.getElementById('error').textContent = 'Wrong code'
       }
+    }
+    
+    function showPromoForm() {
+      main.innerHTML = `
+        <h1>Send Promo Notification</h1>
+        
+        <form id="promo-form" class="admin-form" style="max-width: 600px;">
+          <div class="form-group">
+            <label>Title</label>
+            <input id="title" placeholder="🎉 Weekend Sale!" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Message</label>
+            <textarea id="message" rows="3" placeholder="Get 20% off all Arduino boards this weekend!" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>Target</label>
+            <select id="target">
+              <option value="all">All Users</option>
+              <option value="wishlist">Users with Wishlist Items</option>
+              <option value="cart">Users with Cart Items</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Action Link (optional)</label>
+            <input id="action_url" placeholder="/products.html">
+          </div>
+          
+          <div class="form-group">
+            <label>Action Text</label>
+            <input id="action_text" placeholder="Shop Now">
+          </div>
+          
+          <button type="submit" class="btn-primary">Send to All Users</button>
+          <p id="status"></p>
+        </form>
+      `
       
-      // Create notifications
-      const notifications = userIds.map(uid => ({
-        user_id: uid,
-        type: 'promo',
-        title: document.getElementById('title').value,
-        message: document.getElementById('message').value,
-        data: {
-          action: document.getElementById('action_url').value || '/products.html',
-          action_text: document.getElementById('action_text').value || 'View'
+      // Attach the form handler
+      document.getElementById('promo-form').onsubmit = async (e) => {
+        e.preventDefault()
+        const status = document.getElementById('status')
+        status.textContent = 'Sending...'
+        
+        // Get target users
+        let userIds = []
+        const target = document.getElementById('target').value
+        
+        if (target === 'all') {
+          const { data } = await supa.from('profiles').select('id')
+          userIds = data?.map(p => p.id) || []
+        } else if (target === 'wishlist') {
+          const { data } = await supa.from('wishlists').select('user_id')
+          userIds = [...new Set(data?.map(w => w.user_id))]
+        } else if (target === 'cart') {
+          const { data } = await supa.from('cart_items').select('user_id')
+          userIds = [...new Set(data?.map(c => c.user_id))]
         }
-      }))
-      
-      // Batch insert (in chunks of 100)
-      const chunkSize = 100
-      for (let i = 0; i < notifications.length; i += chunkSize) {
-        const chunk = notifications.slice(i, i + chunkSize)
-        const { error } = await supa.from('notifications').insert(chunk)
-        if (error) console.error('Batch error:', error)
+        
+        // Create notifications
+        const notifications = userIds.map(uid => ({
+          user_id: uid,
+          type: 'promo',
+          title: document.getElementById('title').value,
+          message: document.getElementById('message').value,
+          data: {
+            action: document.getElementById('action_url').value || '/products.html',
+            action_text: document.getElementById('action_text').value || 'View'
+          }
+        }))
+        
+        // Batch insert (in chunks of 100)
+        const chunkSize = 100
+        for (let i = 0; i < notifications.length; i += chunkSize) {
+          const chunk = notifications.slice(i, i + chunkSize)
+          const { error } = await supa.from('notifications').insert(chunk)
+          if (error) console.error('Batch error:', error)
+        }
+        
+        status.textContent = `✓ Sent to ${userIds.length} users!`
       }
-      
-      status.textContent = `✓ Sent to ${userIds.length} users!`
     }
   </script>
 </body>
