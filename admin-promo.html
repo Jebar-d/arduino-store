@@ -7,42 +7,37 @@
 </head>
 <body>
   <header id="nav"></header>
-  <main class="container">
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
+  <main class="container" style="padding: 2rem;">
     <h1>Send Promo Notification</h1>
-    
-    <form id="promo-form" class="admin-form" style="max-width: 600px;">
+    <p style="color:var(--text2);margin-bottom:2rem;">Send a notification to users directly in their notification bell.</p>
+
+    <div id="promo-form" class="admin-form" style="max-width:600px;">
       <div class="form-group">
         <label>Title</label>
         <input id="title" placeholder="🎉 Weekend Sale!" required>
       </div>
-      
+
       <div class="form-group">
         <label>Message</label>
         <textarea id="message" rows="3" placeholder="Get 20% off all Arduino boards this weekend!" required></textarea>
       </div>
-      
+
       <div class="form-group">
-        <label>Target</label>
+        <label>Target Users</label>
         <select id="target">
           <option value="all">All Users</option>
           <option value="wishlist">Users with Wishlist Items</option>
           <option value="cart">Users with Cart Items</option>
         </select>
       </div>
-      
-      <div class="form-group">
-        <label>Action Link (optional)</label>
-        <input id="action_url" placeholder="/products.html">
-      </div>
-      
-      <div class="form-group">
-        <label>Action Text</label>
-        <input id="action_text" placeholder="Shop Now">
-      </div>
-      
-      <button type="submit" class="btn-primary">Send to All Users</button>
-      <p id="status"></p>
-    </form>
+
+      <button id="send-btn" class="btn-primary" onclick="sendPromo()" style="margin-top:0.5rem;">Send Notification</button>
+      <p id="status" style="margin-top:1rem;font-size:0.9rem;"></p>
+    </div>
   </main>
 
   <!-- Footer -->
@@ -78,130 +73,139 @@
       <p>&copy; 2025 Arduino Store. Built with love for makers in the Philippines.</p>
     </div>
   </footer>
-  
+
   <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
-    
+
     const supa = createClient(
       'https://tyhocgrjwxswxzzfvwct.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
     )
-    
-    // Check admin
+
+    // Page loader
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var loader = document.getElementById('page-loader')
+        if (loader) loader.classList.add('hidden')
+      }, 600)
+    })
+
+    // Toast
+    window.showToast = function(title, msg, type, duration) {
+      msg = msg || ''; type = type || 'info'; duration = duration || 3500
+      var icons = { success: '&#10003;', error: '&#10005;', info: '&#9432;' }
+      var container = document.getElementById('toast-container')
+      var toast = document.createElement('div')
+      toast.className = 'toast ' + type
+      toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span>'
+        + '<div class="toast-title">' + title + '</div>'
+        + (msg ? '<div class="toast-msg">' + msg + '</div>' : '')
+      container.appendChild(toast)
+      setTimeout(function() {
+        toast.classList.add('hiding')
+        setTimeout(function() { toast.remove() }, 300)
+      }, duration)
+    }
+
+    // ⚠️ IMPORTANT: Replace this with your actual admin email
     const ADMIN_EMAIL = 'akosibbear38@gmail.com'
-    const ADMIN_CODE = 'laginard54'
+
+    // Check admin access
     const { data: { session } } = await supa.auth.getSession()
-    
-    const main = document.querySelector('main')
     if (!session) {
-      main.innerHTML = '<h1>Admin Access</h1><p>Please <a href="/login.html">login</a> first.</p>'
-      return
+      location.href = '/login.html'
+    } else if (session.user.email !== ADMIN_EMAIL) {
+      location.href = '/'
     }
-    
-    if (session.user.email !== ADMIN_EMAIL) {
-      main.innerHTML = '<h1>Access Denied</h1><p>Not authorized.</p>'
-      return
-    }
-    
-    // Right email, now check admin code
-    main.innerHTML = `
-      <h1>Admin Verification</h1>
-      <p>Welcome ${session.user.email}. Enter admin code:</p>
-      <input type="password" id="code" placeholder="Admin Code"><br>
-      <button onclick="verifyCode()" class="btn-primary">Continue</button>
-      <p id="error" style="color:#f44;"></p>
-    `
-    
-    window.verifyCode = () => {
-      if (document.getElementById('code').value === ADMIN_CODE) {
-        showPromoForm()
-      } else {
-        document.getElementById('error').textContent = 'Wrong code'
+
+    window.sendPromo = async function() {
+      const btn = document.getElementById('send-btn')
+      const status = document.getElementById('status')
+
+      const title   = document.getElementById('title').value.trim()
+      const message = document.getElementById('message').value.trim()
+      const target  = document.getElementById('target').value
+
+      if (!title || !message) {
+        showToast('Missing fields', 'Please fill in title and message.', 'error')
+        return
       }
-    }
-    
-    function showPromoForm() {
-      main.innerHTML = `
-        <h1>Send Promo Notification</h1>
-        
-        <form id="promo-form" class="admin-form" style="max-width: 600px;">
-          <div class="form-group">
-            <label>Title</label>
-            <input id="title" placeholder="🎉 Weekend Sale!" required>
-          </div>
-          
-          <div class="form-group">
-            <label>Message</label>
-            <textarea id="message" rows="3" placeholder="Get 20% off all Arduino boards this weekend!" required></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label>Target</label>
-            <select id="target">
-              <option value="all">All Users</option>
-              <option value="wishlist">Users with Wishlist Items</option>
-              <option value="cart">Users with Cart Items</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label>Action Link (optional)</label>
-            <input id="action_url" placeholder="/products.html">
-          </div>
-          
-          <div class="form-group">
-            <label>Action Text</label>
-            <input id="action_text" placeholder="Shop Now">
-          </div>
-          
-          <button type="submit" class="btn-primary">Send to All Users</button>
-          <p id="status"></p>
-        </form>
-      `
-      
-      // Attach the form handler
-      document.getElementById('promo-form').onsubmit = async (e) => {
-        e.preventDefault()
-        const status = document.getElementById('status')
-        status.textContent = 'Sending...'
-        
-        // Get target users
-        let userIds = []
-        const target = document.getElementById('target').value
-        
-        if (target === 'all') {
-          const { data } = await supa.from('profiles').select('id')
-          userIds = data?.map(p => p.id) || []
-        } else if (target === 'wishlist') {
-          const { data } = await supa.from('wishlists').select('user_id')
-          userIds = [...new Set(data?.map(w => w.user_id))]
-        } else if (target === 'cart') {
-          const { data } = await supa.from('cart_items').select('user_id')
-          userIds = [...new Set(data?.map(c => c.user_id))]
+
+      btn.textContent = 'Sending...'
+      btn.disabled = true
+      status.textContent = ''
+      status.style.color = 'var(--text2)'
+
+      // Get target user IDs
+      let userIds = []
+
+      if (target === 'all') {
+        const { data, error } = await supa.from('profiles').select('id')
+        if (error) {
+          showToast('Error', 'Could not fetch users: ' + error.message, 'error')
+          btn.textContent = 'Send Notification'
+          btn.disabled = false
+          return
         }
-        
-        // Create notifications
-        const notifications = userIds.map(uid => ({
-          user_id: uid,
-          type: 'promo',
-          title: document.getElementById('title').value,
-          message: document.getElementById('message').value,
-          data: {
-            action: document.getElementById('action_url').value || '/products.html',
-            action_text: document.getElementById('action_text').value || 'View'
-          }
-        }))
-        
-        // Batch insert (in chunks of 100)
-        const chunkSize = 100
-        for (let i = 0; i < notifications.length; i += chunkSize) {
-          const chunk = notifications.slice(i, i + chunkSize)
-          const { error } = await supa.from('notifications').insert(chunk)
-          if (error) console.error('Batch error:', error)
+        userIds = data?.map(p => p.id) || []
+
+      } else if (target === 'wishlist') {
+        const { data } = await supa.from('wishlists').select('user_id')
+        userIds = [...new Set(data?.map(w => w.user_id) || [])]
+
+      } else if (target === 'cart') {
+        const { data } = await supa.from('cart_items').select('user_id')
+        userIds = [...new Set(data?.map(c => c.user_id) || [])]
+      }
+
+      if (userIds.length === 0) {
+        showToast('No users found', 'No users matched the selected target.', 'info')
+        btn.textContent = 'Send Notification'
+        btn.disabled = false
+        return
+      }
+
+      // Build notifications — only columns that exist in your table:
+      // id, user_id, product_id, title, message, type, is_read, created_at
+      const notifications = userIds.map(uid => ({
+        user_id: uid,
+        type: 'promo',
+        title: title,
+        message: message
+      }))
+
+      // Batch insert in chunks of 100
+      let totalSent = 0
+      let hasError = false
+      const chunkSize = 100
+
+      for (let i = 0; i < notifications.length; i += chunkSize) {
+        const chunk = notifications.slice(i, i + chunkSize)
+        const { error } = await supa.from('notifications').insert(chunk)
+        if (error) {
+          console.error('Batch error:', error)
+          hasError = true
+        } else {
+          totalSent += chunk.length
         }
-        
-        status.textContent = `✓ Sent to ${userIds.length} users!`
+      }
+
+      btn.textContent = 'Send Notification'
+      btn.disabled = false
+
+      if (hasError) {
+        showToast('Partial error', `Sent to ${totalSent} users but some failed. Check console.`, 'error')
+        status.textContent = `⚠️ Sent to ${totalSent}/${userIds.length} users (some errors).`
+        status.style.color = 'var(--error)'
+      } else {
+        showToast('Promo sent!', `Notification delivered to ${totalSent} users.`, 'success')
+        status.textContent = `✓ Successfully sent to ${totalSent} users!`
+        status.style.color = '#22c55e'
+
+        // Clear form
+        document.getElementById('title').value = ''
+        document.getElementById('message').value = ''
       }
     }
   </script>
