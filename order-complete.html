@@ -6,6 +6,7 @@
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     /* ── E-Receipt styles ── */
     .receipt-card {
@@ -193,28 +194,7 @@
     <!-- Tracking -->
     <div class="order-receipt" id="tracking-section">
       <h3>Order Tracking</h3>
-      <div class="tracking-steps">
-        <div class="tracking-step done">
-          <div class="t-dot"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="t-label">Order Placed</div><div class="t-date" id="track-placed"></div></div>
-        </div>
-        <div class="tracking-step active">
-          <div class="t-dot"></div>
-          <div><div class="t-label">Processing / To Ship</div><div class="t-date">Being prepared at our warehouse</div></div>
-        </div>
-        <div class="tracking-step pending">
-          <div class="t-dot"></div>
-          <div><div class="t-label">Shipped / In Transit</div><div class="t-date">–</div></div>
-        </div>
-        <div class="tracking-step pending">
-          <div class="t-dot"></div>
-          <div><div class="t-label">Out for Delivery</div><div class="t-date">–</div></div>
-        </div>
-        <div class="tracking-step pending">
-          <div class="t-dot"></div>
-          <div><div class="t-label">Delivered</div><div class="t-date" id="track-eta"></div></div>
-        </div>
-      </div>
+      <div class="tracking-steps" id="tracking-steps"></div>
     </div>
 
     <!-- Rating -->
@@ -252,8 +232,11 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
     )
 
-    /* ── Formspree endpoint (reusing existing form) ── */
-    const FORMSPREE = 'https://formspree.io/f/xpqyplrb'
+    /* ── EmailJS config — replace these 3 values with yours from emailjs.com ── */
+    const EJS_PUBLIC_KEY   = 'mw0unF4WabHlda6f1'
+    const EJS_SERVICE_ID   = 'service_fdjuwog'
+    const EJS_TEMPLATE_ID  = 'template_umer2o9'
+    emailjs.init({ publicKey: EJS_PUBLIC_KEY })
 
     window.showToast = (title, msg, type, dur) => {
       type=type||'info'; dur=dur||3500
@@ -274,37 +257,87 @@
 
     let order = {}
 
-    /* Always fetch fresh from DB when order_id is in URL (covers Xendit redirect) */
-    if (returnedOrderId) {
-      const { data: dbOrder } = await supa
-        .from('orders')
-        .select('*, order_items(product_name, qty, price_cents, product_img)')
-        .eq('id', returnedOrderId)
-        .single()
-      if (dbOrder) {
-        const ship = dbOrder.shipping_method === 'express' ? 24900
-                   : dbOrder.shipping_method === 'free'    ? 0 : 9900
-        order = {
-          id:       dbOrder.id,
-          total:    dbOrder.total_cents,
-          payment:  dbOrder.payment_method,
-          shipping: dbOrder.shipping_method,
-          eta:      dbOrder.expected_delivery,
-          address:  dbOrder.shipping_address,
-          email:    session?.user?.email || '',
-          status:   dbOrder.status,
-          products: (dbOrder.order_items || []).map(i => ({
-            name:  i.product_name || 'Product',
-            qty:   i.qty,
-            price: i.price_cents,
-            img:   i.product_img
-          }))
-        }
-        sessionStorage.setItem('last_order', JSON.stringify(order))
+    /* ── Debug helper (remove after fixing) ── */
+    console.log('[order-complete] page loaded, order_id:', new URLSearchParams(location.search).get('order_id'))
+
+    /* Helper to map raw DB order to local order object */
+    function mapOrder(dbO, userEmail) {
+      return {
+        id:              dbO.id,
+        total:           dbO.total_cents,
+        payment:         dbO.payment_method,
+        shipping:        dbO.shipping_method,
+        eta:             dbO.expected_delivery,
+        address:         dbO.shipping_address,
+        email:           userEmail || '',
+        status:          dbO.status,
+        tracking_status: dbO.tracking_status || 'processing',
+        created_at:      dbO.created_at,
+        products: (dbO.order_items || []).map(i => ({
+          id:    i.product_id,
+          name:  i.product_name || 'Product',
+          qty:   i.qty,
+          price: i.price_cents,
+          img:   i.product_img
+        }))
       }
-    } else {
-      /* Fallback: use sessionStorage (e.g. COD orders) */
+    }
+
+    /* Fetch order from DB by id, with error logging */
+    async function fetchOrderFromDB(orderId) {
+      const { data, error } = await supa
+        .from('orders')
+        .select('*, order_items(id, product_id, product_name, qty, price_cents, product_img)')
+        .eq('id', orderId)
+        .maybeSingle()
+      if (error) console.error('[order-complete] DB fetch error:', JSON.stringify(error))
+      return data
+    }
+
+    /* Reliably resolve customer email from multiple sources */
+    async function resolveEmail() {
+      // 1. From live session
+      if (session?.user?.email) return session.user.email
+      // 2. Re-fetch session in case it wasn't ready yet at page load
+      const { data: { session: freshSession } } = await supa.auth.getSession()
+      if (freshSession?.user?.email) return freshSession.user.email
+      // 3. Fetch from profiles table directly
+      const userId = freshSession?.user?.id || session?.user?.id
+      if (userId) {
+        const { data: prof } = await supa.from('profiles').select('email').eq('id', userId).maybeSingle()
+        if (prof?.email) return prof.email
+      }
+      // 4. From sessionStorage fallback
+      const stored = JSON.parse(sessionStorage.getItem('last_order') || '{}')
+      if (stored?.email) return stored.email
+      return ''
+    }
+
+    /* Always fetch fresh from DB when order_id is in URL */
+    if (returnedOrderId) {
+      let dbOrder = await fetchOrderFromDB(returnedOrderId)
+      console.log('[order-complete] dbOrder result:', dbOrder)
+      if (dbOrder) {
+        const resolvedEmail = await resolveEmail()
+        order = mapOrder(dbOrder, resolvedEmail)
+        sessionStorage.setItem('last_order', JSON.stringify(order))
+        console.log('[order-complete] resolved email:', resolvedEmail)
+      } else {
+        console.warn('[order-complete] No order returned for id:', returnedOrderId, '— check Supabase RLS policies')
+      }
+    } else if (sessionStorage.getItem('last_order')) {
+      /* Fallback: sessionStorage (COD / page refresh) */
       order = JSON.parse(sessionStorage.getItem('last_order') || '{}')
+      /* Always re-fetch to get fresh products + tracking */
+      if (order.id) {
+        const dbOrder = await fetchOrderFromDB(order.id)
+        if (dbOrder) {
+          const resolvedEmail = await resolveEmail()
+          order = mapOrder(dbOrder, resolvedEmail || order.email)
+          sessionStorage.setItem('last_order', JSON.stringify(order))
+          console.log('[order-complete] resolved email (fallback):', resolvedEmail)
+        }
+      }
     }
 
     /* After successful payment — clear cart + notify */
@@ -312,18 +345,20 @@
       await supa.from('cart_items').delete().eq('user_id', session.user.id)
       const existingPromo = JSON.parse(sessionStorage.getItem('applied_promo') || 'null')
       if (existingPromo?.id) {
-        await supa.rpc('use_promo', { promo_id: existingPromo.id }).catch(() => {})
+        try { await supa.rpc('use_promo', { promo_id: existingPromo.id }) } catch(e) {}
       }
       sessionStorage.removeItem('applied_promo')
       if (order.id) {
-        await supa.from('orders').update({ status: 'paid' }).eq('id', order.id).catch(() => {})
+        try { await supa.from('orders').update({ status: 'paid' }).eq('id', order.id) } catch(e) {}
         order.status = 'paid'
-        await supa.from('notifications').insert({
-          user_id: session.user.id,
-          title: 'Payment Confirmed',
-          message: `Payment for order #${order.id.substring(0,8).toUpperCase()} confirmed via ${payLabels[order.payment] || order.payment}. Total: ₱${(order.total / 100).toFixed(2)}.`,
-          type: 'system', is_read: false
-        }).catch(() => {})
+        try {
+          await supa.from('notifications').insert({
+            user_id: session.user.id,
+            title: 'Payment Confirmed',
+            message: `Payment for order #${order.id.substring(0,8).toUpperCase()} confirmed via ${payLabels[order.payment] || order.payment}. Total: ₱${(order.total / 100).toFixed(2)}.`,
+            type: 'system', is_read: false
+          })
+        } catch(e) {}
       }
       /* Ensure email is set before auto-sending receipt */
       order.email = session.user.email
@@ -372,9 +407,29 @@
       document.getElementById('r-shipping').textContent = shipLabels[order.shipping]||order.shipping||'—'
       document.getElementById('r-eta').textContent      = order.eta ? `Est. ${order.eta}` : '3–5 business days'
 
-      /* Tracking dates */
-      document.getElementById('track-placed').textContent = new Date().toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
-      document.getElementById('track-eta').textContent    = order.eta ? `Expected: ${order.eta}` : '3–5 business days'
+      /* Tracking steps — driven by tracking_status from DB */
+      const trackingSteps = [
+        { key: 'processing',  label: 'Order Placed',         sub: () => order.created_at ? new Date(order.created_at).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : new Date().toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) },
+        { key: 'processing',  label: 'Processing / To Ship', sub: () => 'Being prepared at our warehouse' },
+        { key: 'shipped',     label: 'Shipped / In Transit', sub: () => '–' },
+        { key: 'out_for_delivery', label: 'Out for Delivery', sub: () => '–' },
+        { key: 'delivered',   label: 'Delivered',            sub: () => order.eta ? `Expected: ${order.eta}` : '3–5 business days' },
+      ]
+      const statusOrder = ['processing','shipped','out_for_delivery','delivered']
+      const currentStatus = order.tracking_status || 'processing'
+      const currentIdx = statusOrder.indexOf(currentStatus)
+      // Map step index to status index (step 0 = placed = always done, step 1 = processing, etc.)
+      const stepStatusIdx = [-1, 0, 1, 2, 3]  // step 0 is always done (order placed)
+      const checkSvg = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
+      const stepsHtml = trackingSteps.map((step, i) => {
+        const sIdx = stepStatusIdx[i]
+        const isDone   = i === 0 || (sIdx !== -1 && sIdx < currentIdx)
+        const isActive = sIdx !== -1 && sIdx === currentIdx
+        const cls = isDone ? 'done' : isActive ? 'active' : 'pending'
+        const dot = isDone ? `<div class="t-dot">${checkSvg}</div>` : `<div class="t-dot"></div>`
+        return `<div class="tracking-step ${cls}">${dot}<div><div class="t-label">${step.label}</div><div class="t-date">${step.sub()}</div></div></div>`
+      }).join('')
+      document.getElementById('tracking-steps').innerHTML = stepsHtml
     }
 
     /* ── Email receipt via Formspree ── */
@@ -423,26 +478,50 @@ Thank you for shopping with us!
 For support: support@arduinostore.ph
 ═══════════════════════════════════`
 
+      /* Re-resolve email at send time in case session loaded late */
+      let customerEmail = order.email || await resolveEmail()
+      console.log('[emailjs] sending to:', customerEmail)
+      if (!customerEmail) {
+        if (!auto) showToast('No email','No customer email found for this order.','error')
+        if (btn) { btn.disabled=false; btn.innerHTML=`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email Receipt` }
+        return
+      }
+
+      /* Build plain-text items list (no HTML — EmailJS escapes dynamic HTML vars) */
+      const itemsText = order.products?.length
+        ? order.products.map(p =>
+            `${p.name||p.product_name||'Product'}  ×${p.qty}  ${p.price ? '₱'+(p.price*p.qty/100).toFixed(2) : ''}`
+          ).join('\n')
+        : `${order.items||0} item(s)`
+
+      const isPaidEmail = order.status === 'paid' || (order.payment !== 'cod')
+      const statusText = isPaidEmail ? '✓ PAID' : '⏳ PENDING PAYMENT'
+
+      const now = new Date()
       try {
-        const res = await fetch(FORMSPREE, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
-          body: JSON.stringify({
-            _replyto: order.email||session?.user?.email||'',
-            email:    order.email||session?.user?.email||'',
-            subject,
-            message:  body,
-            name:     addr.name||'Customer',
-            order_id: order.id.substring(0,8).toUpperCase()
-          })
+        await emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_ID, {
+          to_email:        customerEmail,
+          to_name:         addr.name || 'Customer',
+          order_id:        order.id.substring(0,8).toUpperCase(),
+          order_date:      now.toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'}),
+          order_time:      now.toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}),
+          status_badge:    statusText,
+          items_list:      itemsText,
+          subtotal:        '₱' + ((order.total-ship)/100).toFixed(2),
+          shipping_cost:   ship===0 ? 'FREE' : '₱'+(ship/100).toFixed(2),
+          total:           '₱' + (order.total/100).toFixed(2),
+          del_name:        addr.name||'—',
+          del_address:     [addr.address, addr.city, (addr.province||''), addr.zip].filter(Boolean).join(', '),
+          del_phone:       addr.phone||'—',
+          payment:         payLabels[order.payment]||order.payment||'—',
+          shipping_method: shipLabels[order.shipping]||order.shipping||'—',
+          est_arrival:     order.eta ? `Est. ${order.eta}` : '3–5 business days',
+          reply_to:        'support@arduinostore.ph'
         })
-        if (res.ok) {
-          if (!auto) showToast('Receipt Sent!','Check your email for your e-receipt.','success',5000)
-        } else {
-          if (!auto) showToast('Failed','Could not send email. Please try again.','error')
-        }
-      } catch {
-        if (!auto) showToast('Network error','Could not reach email service.','error')
+        if (!auto) showToast('Receipt Sent!',`E-receipt sent to ${customerEmail}`,'success',5000)
+      } catch(e) {
+        console.error('[emailjs] send error:', e)
+        if (!auto) showToast('Failed','Could not send email. Please try again.','error')
       } finally {
         if (btn) {
           btn.disabled = false
@@ -465,7 +544,7 @@ For support: support@arduinostore.ph
       const comment = document.getElementById('rating-comment')?.value.trim()
       if (order.products?.length) {
         for (const p of order.products) {
-          if (p.id) await supa.from('reviews').upsert({ product_id:p.id, user_id:session.user.id, rating:selectedRating, comment:comment||null },{onConflict:'product_id,user_id'}).catch(()=>{})
+          if (p.id) try { await supa.from('reviews').upsert({ product_id:p.id, user_id:session.user.id, rating:selectedRating, comment:comment||null },{onConflict:'product_id,user_id'}) } catch(e) {}
         }
       }
       showToast('Thank you!','Your review has been submitted.','success')
@@ -480,7 +559,7 @@ For support: support@arduinostore.ph
       if (!session) { showToast('Sign in required','','info'); return }
       const { error } = await supa.from('refund_requests').insert({order_id:order.id,user_id:session.user.id,reason:reason||'No reason provided',status:'pending'})
       if (error) { showToast('Error','Could not submit refund. Please contact support.','error'); return }
-      await supa.from('notifications').insert({user_id:session.user.id,title:'Refund Requested',message:`Refund request submitted for order #${order.id.substring(0,8).toUpperCase()}. We'll respond within 24–48 hours.`,type:'system',is_read:false}).catch(()=>{})
+      try { await supa.from('notifications').insert({user_id:session.user.id,title:'Refund Requested',message:`Refund request submitted for order #${order.id.substring(0,8).toUpperCase()}. We'll respond within 24–48 hours.`,type:'system',is_read:false}) } catch(e) {}
       showToast('Refund Requested','Our team will review and contact you within 24–48 hours.','success',6000)
     }
 
@@ -496,7 +575,7 @@ For support: support@arduinostore.ph
       if (age > 60*60*1000) { showToast('Cannot cancel','Orders can only be cancelled within 1 hour of placement.','error',5000); return }
       const { error } = await supa.from('orders').update({status:'cancelled',cancelled_at:new Date().toISOString(),cancel_reason:'Customer requested cancellation'}).eq('id',order.id)
       if (error) { showToast('Error','Could not cancel. Please contact support.','error'); return }
-      await supa.from('notifications').insert({user_id:session.user.id,title:'Order Cancelled',message:`Order #${order.id.substring(0,8).toUpperCase()} has been cancelled.`,type:'system',is_read:false}).catch(()=>{})
+      try { await supa.from('notifications').insert({user_id:session.user.id,title:'Order Cancelled',message:`Order #${order.id.substring(0,8).toUpperCase()} has been cancelled.`,type:'system',is_read:false}) } catch(e) {}
       showToast('Order Cancelled','Your order has been cancelled.','info',6000)
       document.querySelectorAll('.btn-danger-outline').forEach(b=>b.disabled=true)
     }
