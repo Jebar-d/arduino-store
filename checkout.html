@@ -332,9 +332,9 @@
         return
       }
 
-      /* 5. GCash / Maya → Supabase Edge Function → Xendit */
-      if (selectedPayment==='gcash' || selectedPayment==='maya') {
-        const channelCode = selectedPayment==='gcash' ? 'GCASH' : 'PAYMAYA'
+      /* 5. GCash / Maya / Card → Supabase Edge Function → Xendit Invoice */
+      if (['gcash','maya','card'].includes(selectedPayment)) {
+        const channelMap = { gcash: 'GCASH', maya: 'PAYMAYA', card: 'CARD' }
         try {
           const res = await fetch('https://tyhocgrjwxswxzzfvwct.supabase.co/functions/v1/xendit-ewallet', {
             method: 'POST',
@@ -342,49 +342,22 @@
             body: JSON.stringify({
               order_id: order.id,
               amount: totalCents / 100,
-              channel_code: channelCode,
+              channel_code: channelMap[selectedPayment],
               success_url: `${location.origin}/order-complete.html?order_id=${order.id}&payment=success`,
-              failure_url: `${location.origin}/checkout.html?payment=failed`
+              failure_url: `${location.origin}/checkout.html?payment=failed`,
+              payer_email: session.user.email,
+              customer_name: shippingAddress.name,
+              items: cartItems.map(i => ({
+                name: i.products.name,
+                qty: i.qty,
+                price: i.products.price_cents / 100
+              }))
             })
           })
           const data = await res.json()
           if (!res.ok || data?.error) throw new Error(data?.error || 'Payment error')
           if (!data?.checkout_url) throw new Error('No checkout URL returned')
           window.location.href = data.checkout_url
-        } catch (err) {
-          showToast('Payment Error', err.message, 'error')
-          btn.disabled=false; btn.textContent='Place Order'
-        }
-        return
-      }
-
-      /* 6. Card → Xendit Invoice (hosted checkout with card support) */
-      if (selectedPayment==='card') {
-        try {
-          const invRes = await fetch('https://api.xendit.co/v2/invoices', {
-            method: 'POST',
-            headers: { 'Authorization': XND_AUTH, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              external_id: order.id,
-              amount: totalCents / 100,
-              currency: 'PHP',
-              description: `Arduino Store Order #${order.id.substring(0,8).toUpperCase()}`,
-              payer_email: session.user.email,
-              customer: { given_names: shippingAddress.name, email: session.user.email, mobile_number: phone },
-              success_redirect_url: `${location.origin}/order-complete.html?order_id=${order.id}&payment=success`,
-              failure_redirect_url: `${location.origin}/checkout.html?payment=failed`,
-              payment_methods: ['CREDIT_CARD', 'DEBIT_CARD'],
-              items: cartItems.map(i => ({
-                name: i.products.name,
-                quantity: i.qty,
-                price: i.products.price_cents / 100,
-                category: 'Electronics'
-              }))
-            })
-          })
-          const inv = await invRes.json()
-          if (!invRes.ok) throw new Error(inv?.message || 'Xendit invoice error')
-          window.location.href = inv.invoice_url
         } catch (err) {
           showToast('Payment Error', err.message, 'error')
           btn.disabled=false; btn.textContent='Place Order'

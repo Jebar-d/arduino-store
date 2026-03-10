@@ -180,11 +180,7 @@
 
     <!-- Receipt actions -->
     <div class="receipt-actions">
-      <button class="btn-receipt-action" onclick="window.print()">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Print Receipt
-      </button>
-      <button class="btn-receipt-action" id="email-btn" onclick="sendEmailReceipt()">
+      <button class="btn-receipt-action primary" id="email-btn" onclick="sendEmailReceipt()">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Email Receipt
       </button>
@@ -272,52 +268,65 @@
     const payLabels  = {cod:'Cash on Delivery',gcash:'GCash',maya:'Maya',card:'Credit/Debit Card'}
     const shipLabels = {standard:'Standard (3–5 days)',express:'Express (1–2 days)',free:'Free Shipping (3–5 days)'}
 
-    /* ── Handle PayMongo redirect back ── */
-    const urlParams   = new URLSearchParams(location.search)
+    const urlParams       = new URLSearchParams(location.search)
     const returnedOrderId = urlParams.get('order_id')
     const paymentStatus   = urlParams.get('payment')
 
-    let order = JSON.parse(sessionStorage.getItem('last_order')||'{}')
+    let order = {}
 
-    /* If redirected back from PayMongo with order_id, fetch from DB */
-    if (returnedOrderId && !order.id) {
-      const { data: dbOrder } = await supa.from('orders')
-        .select('*, order_items(product_name, qty, price_cents)')
-        .eq('id', returnedOrderId).single()
+    /* Always fetch fresh from DB when order_id is in URL (covers Xendit redirect) */
+    if (returnedOrderId) {
+      const { data: dbOrder } = await supa
+        .from('orders')
+        .select('*, order_items(product_name, qty, price_cents, product_img)')
+        .eq('id', returnedOrderId)
+        .single()
       if (dbOrder) {
+        const ship = dbOrder.shipping_method === 'express' ? 24900
+                   : dbOrder.shipping_method === 'free'    ? 0 : 9900
         order = {
-          id: dbOrder.id,
-          total: dbOrder.total_cents,
-          items: dbOrder.order_items?.length||0,
-          payment: dbOrder.payment_method,
+          id:       dbOrder.id,
+          total:    dbOrder.total_cents,
+          payment:  dbOrder.payment_method,
           shipping: dbOrder.shipping_method,
-          eta: dbOrder.expected_delivery,
-          address: dbOrder.shipping_address,
-          email: session?.user?.email||'',
-          products: dbOrder.order_items?.map(i=>({name:i.product_name,qty:i.qty,price:i.price_cents}))||[]
+          eta:      dbOrder.expected_delivery,
+          address:  dbOrder.shipping_address,
+          email:    session?.user?.email || '',
+          status:   dbOrder.status,
+          products: (dbOrder.order_items || []).map(i => ({
+            name:  i.product_name || 'Product',
+            qty:   i.qty,
+            price: i.price_cents,
+            img:   i.product_img
+          }))
         }
         sessionStorage.setItem('last_order', JSON.stringify(order))
       }
+    } else {
+      /* Fallback: use sessionStorage (e.g. COD orders) */
+      order = JSON.parse(sessionStorage.getItem('last_order') || '{}')
     }
 
-    /* After successful PayMongo payment — clear cart + notify */
-    if (paymentStatus==='success' && session) {
+    /* After successful payment — clear cart + notify */
+    if (paymentStatus === 'success' && session) {
       await supa.from('cart_items').delete().eq('user_id', session.user.id)
-      const existingPromo = JSON.parse(sessionStorage.getItem('applied_promo')||'null')
+      const existingPromo = JSON.parse(sessionStorage.getItem('applied_promo') || 'null')
       if (existingPromo?.id) {
-        await supa.rpc('use_promo',{promo_id:existingPromo.id}).catch(()=>{})
+        await supa.rpc('use_promo', { promo_id: existingPromo.id }).catch(() => {})
       }
       sessionStorage.removeItem('applied_promo')
       if (order.id) {
-        await supa.from('orders').update({status:'paid'}).eq('id', order.id).catch(()=>{})
+        await supa.from('orders').update({ status: 'paid' }).eq('id', order.id).catch(() => {})
+        order.status = 'paid'
         await supa.from('notifications').insert({
           user_id: session.user.id,
           title: 'Payment Confirmed',
-          message: `Payment for order #${order.id.substring(0,8).toUpperCase()} confirmed via ${payLabels[order.payment]||order.payment}. Total: ₱${(order.total/100).toFixed(2)}.`,
+          message: `Payment for order #${order.id.substring(0,8).toUpperCase()} confirmed via ${payLabels[order.payment] || order.payment}. Total: ₱${(order.total / 100).toFixed(2)}.`,
           type: 'system', is_read: false
-        }).catch(()=>{})
+        }).catch(() => {})
       }
-      /* Auto-send receipt email after successful payment */
+      /* Ensure email is set before auto-sending receipt */
+      order.email = session.user.email
       setTimeout(() => sendEmailReceipt(true), 1500)
     }
 
@@ -326,7 +335,7 @@
       document.getElementById('page-title').textContent = 'No Order Found'
       document.getElementById('page-sub').textContent = 'Could not find order details. Please check My Orders.'
     } else {
-      const isPaid = order.payment !== 'cod' && paymentStatus === 'success'
+      const isPaid = order.status === 'paid' || (order.payment !== 'cod' && paymentStatus === 'success')
 
       document.getElementById('r-order-id').textContent = `Order #${order.id.substring(0,8).toUpperCase()}`
       document.getElementById('r-date').innerHTML = `<div style="font-weight:600;color:var(--text);">${new Date().toLocaleDateString('en-PH',{weekday:'short',year:'numeric',month:'short',day:'numeric'})}</div><div>${new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'})}</div>`
@@ -436,8 +445,8 @@ For support: support@arduinostore.ph
         if (!auto) showToast('Network error','Could not reach email service.','error')
       } finally {
         if (btn) {
-          btn.disabled=false
-          btn.innerHTML=`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email Receipt`
+          btn.disabled = false
+          btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email Receipt`
         }
       }
     }
