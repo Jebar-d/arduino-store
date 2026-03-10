@@ -2,26 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arduino Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arduino Store – Premium Components for Makers</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    /* Carousel slides - dark mode */
+    .carousel-slide-1 { background: linear-gradient(135deg, #0d1a1a 0%, #0a1111 100%); }
+    .carousel-slide-2 { background: linear-gradient(135deg, #0a1520 0%, #05121a 100%); }
+    .carousel-slide-3 { background: linear-gradient(135deg, #130a20 0%, #0a0515 100%); }
+    /* Carousel slides - light mode */
+    [data-theme="light"] .carousel-slide-1 { background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); }
+    [data-theme="light"] .carousel-slide-2 { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); }
+    [data-theme="light"] .carousel-slide-3 { background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); }
+    /* Fix carousel slide content text in light mode */
+    [data-theme="light"] .carousel-slide-content h3 { color: #0f172a; }
+    [data-theme="light"] .carousel-slide-content p { color: #334155; }
+    [data-theme="light"] .carousel-slide-content { background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, transparent 70%); }
+    /* Fix inline overlay dark backgrounds on carousel slides */
+    [data-theme="light"] .carousel-slide > div:first-child { background: linear-gradient(135deg, rgba(8,145,178,0.08), rgba(0,0,0,0.05)) !important; }
+    /* Fix hero-search input in light mode */
+    [data-theme="light"] .hero-search input { background: rgba(255,255,255,0.8); border-color: rgba(8,145,178,0.3); color: #0f172a; }
+    [data-theme="light"] .hero-search input::placeholder { color: rgba(15,23,42,0.45); }
+  </style>
 </head>
 <body>
-
-  <!-- PAGE LOADER -->
   <div id="page-loader">
     <img src="/public/logo2.png" alt="Loading" class="loader-logo" onerror="this.style.display='none'">
     <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
     <span class="loader-text">Loading Store...</span>
   </div>
 
-  <!-- TOAST CONTAINER -->
   <div id="toast-container"></div>
 
-  <!-- Header Navigation -->
+  <!-- PROMO AD POPUP (shown on load for signed-in users) -->
+  <div id="promo-popup-overlay" class="promo-popup-overlay hidden">
+    <div class="promo-popup">
+      <button class="promo-popup-close" onclick="closePromoPopup()">×</button>
+      <div class="promo-popup-badge">Limited Time Offer</div>
+      <h2>Welcome Back!</h2>
+      <p id="promo-popup-msg">Exclusive promo just for you. Use code below at checkout:</p>
+      <div class="promo-timer" id="promo-countdown"></div>
+      <div class="promo-code-box">
+        <span class="code" id="promo-popup-code">ARDUINO10</span>
+        <button onclick="copyPromoCode()">Copy</button>
+      </div>
+      <a href="/products.html" class="promo-popup-cta" onclick="closePromoPopup()">Shop Now &amp; Save</a>
+      <button class="promo-popup-skip" onclick="closePromoPopup()">Maybe later</button>
+    </div>
+  </div>
+
   <header id="nav"></header>
 
   <!-- Hero Section -->
@@ -33,53 +66,50 @@
       <p>Premium Arduino boards, sensors, and components for makers, students, and engineers.</p>
       <div class="hero-buttons">
         <a href="/products.html" class="btn-hero-primary">Browse Products</a>
-        <button class="btn-hero-secondary" onclick="document.querySelector('.featured-grid').scrollIntoView({behavior:'smooth'})">
-          Featured Items ↓
-        </button>
+        <button class="btn-hero-secondary" onclick="document.querySelector('.featured-grid').scrollIntoView({behavior:'smooth'})">Featured Items ↓</button>
+      </div>
+      <!-- Hero Search -->
+      <div class="hero-search" style="margin:1.5rem auto 0;max-width:480px;width:100%;display:flex;gap:0.5rem;align-items:center;">
+        <input type="text" id="hero-search-input" placeholder="Search products, boards, sensors…" onkeydown="if(event.key==='Enter')doHeroSearch()">
+        <button onclick="doHeroSearch()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search</button>
       </div>
     </div>
   </section>
 
   <main class="container">
 
-  
-
     <!-- Image Carousel -->
     <h2 class="section-title">What's Hot</h2>
     <div class="carousel-section">
       <div class="carousel-track-wrap">
         <div class="carousel-track" id="carousel-track">
-
-          <div class="carousel-slide" style="background:linear-gradient(135deg,#0d1a1a 0%,#112 100%);">
+          <div class="carousel-slide carousel-slide-1">
             <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(119,207,207,0.12),rgba(0,0,0,0.7));z-index:1;"></div>
             <div class="carousel-slide-content">
               <span style="color:var(--primary);font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:0.5rem;display:block;">New Arrival</span>
               <h3>Arduino UNO R4</h3>
-              <p>The latest generation board with enhanced performance and built-in WiFi connectivity.</p>
+              <p>The latest generation board with enhanced performance and built-in WiFi.</p>
               <a href="/products.html" class="btn-hero-primary" style="font-size:0.95rem;padding:0.75rem 1.75rem;display:inline-block;">Shop Now</a>
             </div>
           </div>
-
-          <div class="carousel-slide" style="background:linear-gradient(135deg,#0a1520 0%,#05121a 100%);">
+          <div class="carousel-slide carousel-slide-2">
             <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(119,207,207,0.08),rgba(0,0,0,0.7));z-index:1;"></div>
             <div class="carousel-slide-content">
-              <span style="color:var(--primary);font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:0.5rem;display:block;">Bundle Deal</span>
-              <h3>Starter Kit</h3>
-              <p>Everything you need to start your maker journey — boards, sensors, wires and more.</p>
+              <span style="color:var(--primary);font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:0.5rem;display:block;">Free Shipping</span>
+              <h3>Bulk Order Deal</h3>
+              <p>Order ₱1,500+ and get FREE nationwide shipping. Use code <strong style="color:var(--primary);">FREESHIP</strong>.</p>
               <a href="/products.html" class="btn-hero-primary" style="font-size:0.95rem;padding:0.75rem 1.75rem;display:inline-block;">View Bundles</a>
             </div>
           </div>
-
-          <div class="carousel-slide" style="background:linear-gradient(135deg,#130a20 0%,#0a0515 100%);">
+          <div class="carousel-slide carousel-slide-3">
             <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(119,207,207,0.06),rgba(0,0,0,0.7));z-index:1;"></div>
             <div class="carousel-slide-content">
-              <span style="color:var(--primary);font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:0.5rem;display:block;">3D Printed</span>
-              <h3>Custom Parts</h3>
-              <p>Unique 3D-printed enclosures and accessories designed for your Arduino projects.</p>
-              <a href="/products.html" class="btn-hero-primary" style="font-size:0.95rem;padding:0.75rem 1.75rem;display:inline-block;">Explore</a>
+              <span style="color:var(--primary);font-size:0.8rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:0.5rem;display:block;">Starter Kit</span>
+              <h3>Save 15% Today</h3>
+              <p>First-time buyer? Use code <strong style="color:var(--primary);">WELCOME15</strong> for 15% off your first order!</p>
+              <a href="/products.html" class="btn-hero-primary" style="font-size:0.95rem;padding:0.75rem 1.75rem;display:inline-block;">Claim Offer</a>
             </div>
           </div>
-
         </div>
       </div>
       <div class="carousel-nav">
@@ -93,43 +123,37 @@
       </div>
     </div>
 
-    <!-- Categories Section -->
+    <!-- Categories -->
     <h2 class="section-title">Shop by Category</h2>
     <div class="categories-grid">
       <div class="category-card" onclick="location.href='/products.html'">
-        <div class="category-icon">
-          <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" fill="none" stroke-width="1.5"/><circle cx="7" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/><line x1="2" y1="9" x2="22" y2="9" stroke="currentColor" stroke-width="1.5"/></svg>
-        </div>
+        <div class="category-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" fill="none" stroke-width="1.5"/><circle cx="7" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/><line x1="2" y1="9" x2="22" y2="9" stroke="currentColor" stroke-width="1.5"/></svg></div>
         <h3>Boards</h3>
       </div>
       <div class="category-card" onclick="location.href='/products.html'">
-        <div class="category-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
-        </div>
+        <div class="category-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg></div>
         <h3>Sensors</h3>
       </div>
       <div class="category-card" onclick="location.href='/products.html'">
-        <div class="category-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
+        <div class="category-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
         <h3>Actuators</h3>
       </div>
       <div class="category-card" onclick="location.href='/products.html'">
-        <div class="category-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        </div>
+        <div class="category-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
         <h3>Modules</h3>
       </div>
       <div class="category-card" onclick="location.href='/products.html'">
-        <div class="category-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        </div>
+        <div class="category-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
         <h3>Kits</h3>
       </div>
     </div>
 
-    <!-- Featured Products Section -->
+    <!-- Featured Products -->
     <h2 class="section-title">Featured Products</h2>
+    <div class="search-bar-wrap">
+      <input type="text" id="featured-search" placeholder="Search featured products…" oninput="filterFeatured(this.value)">
+      <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    </div>
     <div class="featured-grid" id="featured-grid">
       <p style="color:var(--text2)">Loading products...</p>
     </div>
@@ -138,32 +162,28 @@
     <h2 class="section-title">Why Arduino Store?</h2>
     <div class="why-grid">
       <div class="why-card">
-        <div class="why-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <h3>Authentic Components</h3>
-        <p>Every product is verified genuine. We source directly from trusted suppliers — no counterfeits.</p>
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>Authentic Components</h3><p>Every product is verified genuine. We source directly from trusted suppliers — no counterfeits.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-        </div>
-        <h3>Fast Nationwide Delivery</h3>
-        <p>Orders shipped across the Philippines within 1–3 business days with real-time tracking.</p>
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+        <h3>Fast Nationwide Delivery</h3><p>Orders shipped across the Philippines within 1–3 business days with real-time tracking.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </div>
-        <h3>Technical Support</h3>
-        <p>Our team of makers and engineers are here to help you with any project challenges.</p>
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <h3>Technical Support</h3><p>Our team of makers and engineers are here to help you with any project challenges.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-        </div>
-        <h3>Rewards Program</h3>
-        <p>Earn points on every purchase and redeem them for exclusive discounts on future orders.</p>
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+        <h3>Rewards Program</h3><p>Earn points on every purchase and redeem them for exclusive discounts on future orders.</p>
+      </div>
+    </div>
+
+    <!-- Available Promos / Vouchers -->
+    <h2 class="section-title">Active Promos &amp; Vouchers</h2>
+    <div id="promo-vouchers-section" style="margin-bottom:2.5rem;">
+      <div id="promo-vouchers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+        <p style="color:var(--text2)">Loading promos...</p>
       </div>
     </div>
 
@@ -176,15 +196,20 @@
         <button onclick="subscribeNewsletter()">Subscribe</button>
       </div>
     </div>
-
   </main>
 
-  <!-- Footer -->
+  <!-- FOOTER -->
   <footer class="site-footer">
     <div class="footer-grid">
       <div class="footer-brand">
         <img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'">
         <p>Your one-stop shop for Arduino components, boards, and maker supplies in the Philippines.</p>
+        <div class="footer-social">
+          <a href="#" title="Facebook">f</a>
+          <a href="#" title="Instagram">in</a>
+          <a href="#" title="Twitter">𝕏</a>
+          <a href="#" title="YouTube">▶</a>
+        </div>
       </div>
       <div class="footer-col">
         <h4>Shop</h4>
@@ -199,151 +224,209 @@
         <a href="/signup.html">Sign Up</a>
         <a href="/account.html">My Account</a>
         <a href="/wishlist.html">Wishlist</a>
+        <a href="/cart.html">Cart</a>
       </div>
       <div class="footer-col">
-        <h4>Support</h4>
-        <a href="#">FAQ</a>
-        <a href="#">Shipping Info</a>
-        <a href="#">Returns Policy</a>
-        <a href="#">Contact Us</a>
+        <h4>Info</h4>
+        <a href="/faq.html">FAQ</a>
+        <a href="/shipping.html">Shipping Info</a>
+        <a href="/returns.html">Returns Policy</a>
+        <a href="/contact.html">Contact Us</a>
+        <a href="/about.html">About Us</a>
+        <a href="/terms.html">Terms & Conditions</a>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2025 Arduino Store. Built with love for makers in the Philippines.</p>
+      <p>© 2025 Arduino Store. Built with ❤️ for makers in the Philippines.</p>
+      <div class="footer-bottom-links">
+        <a href="/terms.html">Terms</a>
+        <a href="/rules.html">Rules</a>
+        <a href="/contact.html">Contact</a>
+      </div>
     </div>
   </footer>
 
   <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
+    const supa = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
 
-    const supa = createClient(
-      'https://tyhocgrjwxswxzzfvwct.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
-    )
-
-    // Toast system
-    window.showToast = (title, msg, type, duration) => {
-      msg = msg || ''
-      type = type || 'info'
-      duration = duration || 3500
-      const icons = { success: '&#10003;', error: '&#10005;', info: '&#9432;' }
-      const container = document.getElementById('toast-container')
-      const toast = document.createElement('div')
-      toast.className = 'toast ' + type
-      toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span>'
-        + '<div class="toast-title">' + title + '</div>'
-        + (msg ? '<div class="toast-msg">' + msg + '</div>' : '')
-      container.appendChild(toast)
-      setTimeout(function() {
-        toast.classList.add('hiding')
-        setTimeout(function() { toast.remove() }, 300)
-      }, duration)
+    window.showToast = (title, msg, type, dur) => {
+      type = type||'info'; dur = dur||3500
+      const icons = { success:'✓', error:'✕', info:'ℹ' }
+      const c = document.getElementById('toast-container')
+      const t = document.createElement('div')
+      t.className = 'toast ' + type
+      t.innerHTML = `<span class="toast-icon">${icons[type]||icons.info}</span><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}`
+      c.appendChild(t)
+      setTimeout(() => { t.classList.add('hiding'); setTimeout(() => t.remove(), 300) }, dur)
     }
 
-    // Page loader
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        var loader = document.getElementById('page-loader')
-        if (loader) loader.classList.add('hidden')
-      }, 700)
-    })
+    window.addEventListener('load', () => setTimeout(() => document.getElementById('page-loader')?.classList.add('hidden'), 700))
 
     // Carousel
-    var currentSlide = 0
-    var totalSlides = 3
-    var track = document.getElementById('carousel-track')
-    var dots = document.querySelectorAll('.carousel-dot')
-
+    let cur = 0, tot = 3
+    const track = document.getElementById('carousel-track')
+    const dots = document.querySelectorAll('.carousel-dot')
     function goTo(n) {
-      currentSlide = (n + totalSlides) % totalSlides
-      track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)'
-      dots.forEach(function(d, i) { d.classList.toggle('active', i === currentSlide) })
+      cur = (n + tot) % tot
+      track.style.transform = `translateX(-${cur * 100}%)`
+      dots.forEach((d, i) => d.classList.toggle('active', i === cur))
     }
+    document.getElementById('carousel-prev').onclick = () => goTo(cur - 1)
+    document.getElementById('carousel-next').onclick = () => goTo(cur + 1)
+    dots.forEach(d => d.onclick = () => goTo(+d.dataset.index))
+    setInterval(() => goTo(cur + 1), 5000)
 
-    document.getElementById('carousel-prev').onclick = function() { goTo(currentSlide - 1) }
-    document.getElementById('carousel-next').onclick = function() { goTo(currentSlide + 1) }
-    dots.forEach(function(d) { d.onclick = function() { goTo(+d.dataset.index) } })
-    setInterval(function() { goTo(currentSlide + 1) }, 5000)
-
-    // Load session & wishlist
-    var session = null
-    var wishlistSet = new Set()
+    // Session & Wishlist
+    let session = null, wishlistSet = new Set()
     try {
-      var sessionRes = await supa.auth.getSession()
-      session = sessionRes.data.session
-      if (session && session.user) {
-        var wlRes = await supa.from('wishlists').select('product_id').eq('user_id', session.user.id)
-        if (wlRes.data) wlRes.data.forEach(function(w) { wishlistSet.add(w.product_id) })
+      const r = await supa.auth.getSession()
+      session = r.data.session
+      if (session?.user) {
+        const wl = await supa.from('wishlists').select('product_id').eq('user_id', session.user.id)
+        wl.data?.forEach(w => wishlistSet.add(w.product_id))
+
+        // Show promo popup for signed-in users (once per day)
+        const popupKey = 'promo_popup_' + new Date().toDateString()
+        if (!sessionStorage.getItem(popupKey)) {
+          setTimeout(() => showPromoPopup(), 2000)
+          sessionStorage.setItem(popupKey, '1')
+        }
       }
     } catch(e) {}
 
-    function heartIcon(filled) {
-      if (filled) {
-        return '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
-      }
-      return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+    // Promo Popup
+    function showPromoPopup() {
+      const promos = [
+        { code: 'ARDUINO10', msg: 'Get 10% off your next order! Use code at checkout:', timer: 600 },
+        { code: 'FREESHIP', msg: 'FREE shipping on orders ₱1,500+! Use code at checkout:', timer: 900 },
+        { code: 'WELCOME15', msg: 'First order? Get 15% off with this exclusive code!', timer: 1800 },
+      ]
+      const p = promos[Math.floor(Math.random() * promos.length)]
+      document.getElementById('promo-popup-code').textContent = p.code
+      document.getElementById('promo-popup-msg').textContent = p.msg
+      startCountdown(p.timer)
+      document.getElementById('promo-popup-overlay').classList.remove('hidden')
     }
 
-    window.toggleWishlist = async function(btn, productId) {
-      if (!session || !session.user) {
-        showToast('Sign in required', 'Please log in to save items to your wishlist.', 'info')
-        return
-      }
-      var isActive = wishlistSet.has(productId)
-      if (isActive) {
-        await supa.from('wishlists').delete().eq('user_id', session.user.id).eq('product_id', productId)
-        wishlistSet.delete(productId)
-        btn.classList.remove('active')
-        btn.innerHTML = heartIcon(false)
+    function startCountdown(secs) {
+      const el = document.getElementById('promo-countdown')
+      let t = secs
+      const upd = () => { const m = Math.floor(t/60), s = t%60; el.textContent = `⏰ Expires in ${m}:${s.toString().padStart(2,'0')}`; if(t-- <= 0) { el.textContent = 'Offer expired'; clearInterval(iv) } }
+      upd(); const iv = setInterval(upd, 1000)
+    }
+
+    window.closePromoPopup = () => document.getElementById('promo-popup-overlay').classList.add('hidden')
+    window.copyPromoCode = () => {
+      const code = document.getElementById('promo-popup-code').textContent
+      navigator.clipboard?.writeText(code).then(() => showToast('Copied!', `Code ${code} copied to clipboard.`, 'success', 2000))
+    }
+    window.doHeroSearch = () => {
+      const q = document.getElementById('hero-search-input').value.trim()
+      if (q) location.href = '/products.html?search=' + encodeURIComponent(q)
+    }
+
+    // Featured Products
+    let allProducts = []
+    const grid = document.getElementById('featured-grid')
+    const { data: products, error } = await supa.from('products').select('*').order('created_at', { ascending: false }).limit(8)
+    if (error || !products?.length) {
+      grid.innerHTML = '<p style="color:var(--text2)">No products available yet.</p>'
+    } else {
+      allProducts = products
+      renderFeatured(products)
+    }
+
+    function heartIcon(f) {
+      return f
+        ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+    }
+
+    function renderFeatured(prods) {
+      if (!prods.length) { grid.innerHTML = '<p style="color:var(--text2)">No products found.</p>'; return }
+      grid.innerHTML = prods.map((p, i) => {
+        const inWL = wishlistSet.has(p.id)
+        const stockBadge = p.stock === 0 ? '<span style="background:rgba(255,68,68,0.15);color:#ff6b6b;font-size:0.7rem;padding:2px 6px;border-radius:10px;">Out of Stock</span>'
+          : p.stock < 5 ? `<span style="background:rgba(255,170,0,0.15);color:#ffaa00;font-size:0.7rem;padding:2px 6px;border-radius:10px;">Only ${p.stock} left</span>` : ''
+        return `<a href="/product-detail.html?slug=${p.slug}" class="featured-card" style="animation-delay:${i*0.08}s">
+          <div class="featured-image">
+            <img src="${p.img_url||'/public/product.png'}" alt="${p.name}" loading="lazy">
+            <div class="featured-badge">${p.model_url?'3D':'NEW'}</div>
+          </div>
+          <div class="featured-content">
+            <h3>${p.name}</h3>
+            <p>${(p.description||'Premium Arduino component').substring(0,80)}…</p>
+            ${stockBadge}
+            <div class="featured-price">₱${(p.price_cents/100).toFixed(2)}</div>
+            <div class="featured-footer">
+              <button onclick="event.preventDefault();location.href='/product-detail.html?slug=${p.slug}'">View Details</button>
+              <button class="wishlist-btn${inWL?' active':''}" onclick="event.preventDefault();toggleWishlist(this,'${p.id}')" title="${inWL?'Remove from wishlist':'Add to wishlist'}">${heartIcon(inWL)}</button>
+            </div>
+          </div>
+        </a>`
+      }).join('')
+    }
+
+    window.filterFeatured = (q) => {
+      if (!q) { renderFeatured(allProducts); return }
+      const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || (p.description||'').toLowerCase().includes(q.toLowerCase()))
+      renderFeatured(filtered)
+    }
+
+    window.toggleWishlist = async (btn, pid) => {
+      if (!session?.user) { showToast('Sign in required', 'Please log in to save items.', 'info'); return }
+      const active = wishlistSet.has(pid)
+      if (active) {
+        await supa.from('wishlists').delete().eq('user_id', session.user.id).eq('product_id', pid)
+        wishlistSet.delete(pid); btn.classList.remove('active'); btn.innerHTML = heartIcon(false)
         showToast('Removed', 'Item removed from wishlist.', 'info', 2000)
       } else {
-        await supa.from('wishlists').insert({ user_id: session.user.id, product_id: productId })
-        wishlistSet.add(productId)
-        btn.classList.add('active')
-        btn.innerHTML = heartIcon(true)
+        await supa.from('wishlists').insert({ user_id: session.user.id, product_id: pid })
+        wishlistSet.add(pid); btn.classList.add('active'); btn.innerHTML = heartIcon(true)
         showToast('Wishlisted!', 'Item saved to your wishlist.', 'success', 2000)
       }
     }
 
-    // Featured Products
-    var grid = document.getElementById('featured-grid')
-    var prodRes = await supa.from('products').select('*').order('created_at', { ascending: false }).limit(6)
-    var products = prodRes.data
-    var prodError = prodRes.error
-
-    if (prodError || !products || !products.length) {
-      grid.innerHTML = '<p style="color:var(--text2)">No products available yet.</p>'
-    } else {
-      grid.innerHTML = products.map(function(p, index) {
-        var inWishlist = wishlistSet.has(p.id)
-        return '<a href="/product-detail.html?slug=' + p.slug + '" class="featured-card" style="animation-delay:' + (index * 0.1) + 's">'
-          + '<div class="featured-image">'
-          + '<img src="' + (p.img_url || '/public/product.png') + '" alt="' + p.name + '" loading="lazy">'
-          + '<div class="featured-badge">' + (p.model_url ? '3D' : 'NEW') + '</div>'
-          + '</div>'
-          + '<div class="featured-content">'
-          + '<h3>' + p.name + '</h3>'
-          + '<p>' + ((p.description || 'Premium Arduino component').substring(0, 80)) + '...</p>'
-          + '<div class="featured-price">&#8369;' + (p.price_cents / 100).toFixed(2) + '</div>'
-          + '<div class="featured-footer">'
-          + '<button onclick="event.preventDefault(); location.href=\'/product-detail.html?slug=' + p.slug + '\'">View Details</button>'
-          + '<button class="wishlist-btn' + (inWishlist ? ' active' : '') + '" onclick="event.preventDefault(); toggleWishlist(this, \'' + p.id + '\')" title="' + (inWishlist ? 'Remove from wishlist' : 'Add to wishlist') + '">' + heartIcon(inWishlist) + '</button>'
-          + '</div>'
-          + '</div>'
-          + '</a>'
-      }).join('')
-    }
-
-    // Newsletter
-    window.subscribeNewsletter = function() {
-      var email = document.getElementById('newsletter-email').value.trim()
-      if (!email || !email.includes('@')) {
-        showToast('Invalid email', 'Please enter a valid email address.', 'error')
-        return
-      }
+    window.subscribeNewsletter = () => {
+      const email = document.getElementById('newsletter-email').value.trim()
+      if (!email.includes('@')) { showToast('Invalid email', 'Please enter a valid email.', 'error'); return }
       showToast('Subscribed!', "Thanks! We'll keep you in the loop.", 'success')
       document.getElementById('newsletter-email').value = ''
+    }
+
+    // Load active promos / vouchers
+    async function loadPromoVouchers() {
+      const now = new Date().toISOString()
+      const { data: promos } = await supa
+        .from('promos')
+        .select('*')
+        .lte('valid_from', now)
+        .gte('valid_until', now)
+        .order('discount_percent', { ascending: false })
+      const grid = document.getElementById('promo-vouchers-grid')
+      if (!promos?.length) { grid.innerHTML = '<p style="color:var(--text2);font-size:0.88rem;">No active promos right now. Check back soon!</p>'; return }
+      grid.innerHTML = promos.map(p => `
+        <div class="voucher-card" style="background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.35rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;">
+            <div>
+              <div class="voucher-code" style="font-family:monospace;font-size:1rem;font-weight:800;color:var(--primary);letter-spacing:0.08em;">${p.code}</div>
+              <div class="voucher-desc" style="font-size:0.78rem;color:var(--text2);margin-top:0.2rem;">${p.description || (p.is_free_shipping ? 'Free Shipping' : `${p.discount_percent}% off`)}</div>
+              ${p.min_order_cents > 0 ? `<div style="font-size:0.72rem;color:var(--text2);">Min. order: ₱${(p.min_order_cents/100).toFixed(0)}</div>` : ''}
+            </div>
+            <button onclick="claimVoucher('${p.code}')" class="voucher-claim" style="padding:0.45rem 1rem;background:var(--primary);color:#000;border:none;border-radius:6px;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;">
+              ${p.is_free_shipping ? 'Free Ship' : `${p.discount_percent}% Off`}
+            </button>
+          </div>
+          ${p.valid_until ? `<div style="font-size:0.7rem;color:var(--text2);">Expires: ${new Date(p.valid_until).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</div>` : ''}
+        </div>`).join('')
+    }
+    loadPromoVouchers()
+
+    window.claimVoucher = (code) => {
+      navigator.clipboard?.writeText(code).catch(()=>{})
+      showToast('Voucher Copied!', `Code "${code}" copied. Use it at checkout.`, 'success', 4000)
     }
   </script>
 </body>

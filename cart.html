@@ -1,149 +1,148 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Arduino Store</title>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart – Arduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <div id="page-loader"><img src="/public/logo2.png" alt="" class="loader-logo" onerror="this.style.display='none'"><div class="loader-bar-wrap"><div class="loader-bar"></div></div><span class="loader-text">Arduino Store</span></div>
+  <div id="toast-container"></div>
+  <header id="nav"></header>
 
-  <!-- PAGE LOADER -->
-  <div id="page-loader">
-    <img src="/public/logo2.png" alt="Loading" class="loader-logo" onerror="this.style.display='none'">
-    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
-    <span class="loader-text">Arduino Store</span>
+  <div class="cart-container">
+    <h1>Shopping Cart</h1>
+    <div id="cart-content"></div>
   </div>
 
-  <!-- TOAST CONTAINER -->
-  <div id="toast-container"></div>
-  <!-- Header Navigation -->
-  <header id="nav"></header>
-  
-  <!-- Cart Content -->
-  <main class="cart-container">
-    <h1>Shopping Cart</h1>
-    <div id="items">Loading...</div>
-  </main>
-
-  <!-- Footer -->
   <footer class="site-footer">
     <div class="footer-grid">
-      <div class="footer-brand">
-        <img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'">
-        <p>Your one-stop shop for Arduino components, boards, and maker supplies in the Philippines.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Shop</h4>
-        <a href="/products.html">All Products</a>
-        <a href="/products.html">Boards</a>
-        <a href="/products.html">Sensors</a>
-        <a href="/products.html">Starter Kits</a>
-      </div>
-      <div class="footer-col">
-        <h4>Account</h4>
-        <a href="/login.html">Login</a>
-        <a href="/signup.html">Sign Up</a>
-        <a href="/account.html">My Account</a>
-        <a href="/wishlist.html">Wishlist</a>
-      </div>
-      <div class="footer-col">
-        <h4>Support</h4>
-        <a href="#">FAQ</a>
-        <a href="#">Shipping Info</a>
-        <a href="#">Returns Policy</a>
-        <a href="#">Contact Us</a>
-      </div>
+      <div class="footer-brand"><img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'"><p>Your one-stop shop for Arduino components in the Philippines.</p></div>
+      <div class="footer-col"><h4>Shop</h4><a href="/products.html">All Products</a><a href="/products.html">Boards</a><a href="/products.html">Sensors</a></div>
+      <div class="footer-col"><h4>Account</h4><a href="/login.html">Login</a><a href="/account.html">My Account</a><a href="/wishlist.html">Wishlist</a></div>
+      <div class="footer-col"><h4>Info</h4><a href="/faq.html">FAQ</a><a href="/contact.html">Contact Us</a><a href="/terms.html">Terms</a></div>
     </div>
-    <div class="footer-bottom">
-      <p>&copy; 2025 Arduino Store. Built with love for makers in the Philippines.</p>
-    </div>
+    <div class="footer-bottom"><p>© 2025 Arduino Store.</p><div class="footer-bottom-links"><a href="/terms.html">Terms</a><a href="/contact.html">Contact</a></div></div>
   </footer>
-  
+
+  <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
-    
-    const itemsEl = document.getElementById('items')
-    
-    const supa = createClient(
-      'https://tyhocgrjwxswxzzfvwct.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
-    )
-    
-    const { data: { session } } = await supa.auth.getSession()
-    
+    const supa = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+
+    window.showToast = (title, msg, type, dur) => {
+      type=type||'info'; dur=dur||3500
+      const icons={success:'✓',error:'✕',info:'ℹ'}
+      const c=document.getElementById('toast-container'); const t=document.createElement('div')
+      t.className='toast '+type; t.innerHTML=`<span class="toast-icon">${icons[type]}</span><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}`
+      c.appendChild(t); setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),300)},dur)
+    }
+    window.addEventListener('load',()=>setTimeout(()=>document.getElementById('page-loader')?.classList.add('hidden'),600))
+
+    const { data:{ session } } = await supa.auth.getSession()
+    const el = document.getElementById('cart-content')
+
     if (!session) {
-      itemsEl.innerHTML = '<div class="empty-state"><p>Please <a href="/login.html">login</a> to view your cart</p></div>'
-      throw new Error('No session')
-    }
-    
-    const { data: cartItems, error } = await supa
-      .from('cart_items')
-      .select('*, products(*)')
-      .eq('user_id', session.user.id)
-    
-    if (error) {
-      itemsEl.innerHTML = '<p style="color:#f44">Error: ' + error.message + '</p>'
-      throw error
-    }
-    
-    if (!cartItems || cartItems.length === 0) {
-      itemsEl.innerHTML = '<div class="empty-state"><h3>Your cart is empty</h3><p><a href="/products.html">Browse products</a> to add items</p></div>'
+      el.innerHTML = '<div class="empty-state"><h3>Please <a href="/login.html">log in</a> to view your cart</h3></div>'
     } else {
-      let subtotal = 0
-      itemsEl.innerHTML = ''
-      
-      cartItems.forEach(item => {
-        const p = item.products
-        const lineTotal = p.price_cents * item.qty
-        subtotal += lineTotal
-        
-        itemsEl.innerHTML += `
-          <div class="cart-item">
-            <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
+      let appliedPromo = null
+      await renderCart()
+
+      async function renderCart() {
+        const { data: cartItems } = await supa.from('cart_items').select('*, products(*)').eq('user_id', session.user.id)
+        if (!cartItems?.length) {
+          el.innerHTML = `<div class="empty-state"><h3>Your cart is empty</h3><p><a href="/products.html">Browse products</a> to add items</p></div>`
+          return
+        }
+
+        let subtotal = 0
+        const itemsHtml = cartItems.map(item => {
+          const p = item.products
+          const lineTotal = p.price_cents * item.qty
+          subtotal += lineTotal
+          const stockStatus = p.stock === 0 ? 'out-stock' : p.stock < 5 ? 'low-stock' : 'in-stock'
+          const stockLabel = p.stock === 0 ? 'Out of Stock' : p.stock < 5 ? `Only ${p.stock} left` : `In Stock (${p.stock})`
+          return `<div class="cart-item" data-id="${item.id}" data-price="${p.price_cents}">
+            <img src="${p.img_url||'/public/product.png'}" alt="${p.name}">
             <div class="item-info">
               <h3>${p.name}</h3>
-              <p>Quantity: ${item.qty}</p>
+              <div class="item-sku">${p.sku||''}</div>
+              <span class="stock-chip ${stockStatus}">${stockLabel}</span>
             </div>
-            <div class="item-price">$${(lineTotal/100).toFixed(2)}</div>
-            <div class="item-actions">
-              <a href="/product-detail.html?slug=${p.slug}" class="btn-view">View</a>
-              <button class="btn-remove" onclick="removeItem('${item.id}')">Remove</button>
+            <div class="qty-ctrl">
+              <button onclick="updateQty('${item.id}',${item.qty-1},${p.stock})" ${item.qty<=1?'disabled':''}>−</button>
+              <span id="qty-${item.id}">${item.qty}</span>
+              <button onclick="updateQty('${item.id}',${item.qty+1},${p.stock})" ${item.qty>=p.stock?'disabled':''}>+</button>
             </div>
-          </div>
-        `
-      })
-      
-      itemsEl.innerHTML += `
-        <div class="cart-summary">
-          <h3>Order Summary</h3>
-          <div class="summary-row">
-            <span>Subtotal</span>
-            <span>$${(subtotal/100).toFixed(2)}</span>
-          </div>
-          <div class="summary-row">
-            <span>Shipping</span>
-            <span>Free</span>
-          </div>
-          <div class="summary-row total">
-            <span>Total</span>
-            <span>$${(subtotal/100).toFixed(2)}</span>
-          </div>
-          <button class="btn-primary" style="width:100%; margin-top:1.5rem; padding:1rem;">Proceed to Checkout</button>
-        </div>
-      `
-    }
-    
-    // Remove item handler
-    window.removeItem = async (id) => {
-      await supa.from('cart_items').delete().eq('id', id)
-      location.reload()
+            <div class="item-price" id="price-${item.id}">₱${(lineTotal/100).toFixed(2)}</div>
+            <button class="item-remove" onclick="removeItem('${item.id}')" title="Remove">Remove</button>
+          </div>`
+        }).join('')
+
+        const discount = appliedPromo ? Math.round(subtotal * appliedPromo.pct / 100) : 0
+        const shipping = subtotal >= 150000 ? 0 : 9900 // Free shipping over ₱1500
+        const total = subtotal - discount + shipping
+
+        el.innerHTML = `
+          <div class="cart-layout">
+            <div>
+              ${itemsHtml}
+              <div class="cart-promo-box">
+                <label>Promo Code</label>
+                <div class="cart-promo-row">
+                  <input type="text" id="promo-input" placeholder="Enter code (e.g. ARDUINO10)" value="${appliedPromo?.code||''}">
+                  <button onclick="applyPromo()">Apply</button>
+                </div>
+                <div class="promo-result" id="promo-result">${appliedPromo?`<span class="ok">${appliedPromo.code} applied — ${appliedPromo.pct}% off!</span>`:''}</div>
+              </div>
+            </div>
+            <div class="cart-summary">
+              <h3>Order Summary</h3>
+              <div class="summary-row"><span>Subtotal (${cartItems.length} item${cartItems.length>1?'s':''})</span><span>₱${(subtotal/100).toFixed(2)}</span></div>
+              ${discount?`<div class="summary-row discount"><span>Discount (${appliedPromo.pct}% off)</span><span>−₱${(discount/100).toFixed(2)}</span></div>`:''}
+              <div class="summary-row"><span>Shipping</span><span>${shipping===0?'<span style="color:var(--success)">FREE 🎉</span>':'₱'+((shipping)/100).toFixed(2)}</span></div>
+              ${subtotal<150000&&subtotal>0?`<div class="free-ship-progress"><div><div>Add <strong>₱${((150000-subtotal)/100).toFixed(2)}</strong> more for FREE shipping!</div><div class="free-ship-bar"><div class="free-ship-fill" style="width:${Math.min(100,(subtotal/150000)*100).toFixed(0)}%"></div></div></div></div>`:''}
+              <div class="summary-row total"><span>Total</span><span>₱${(total/100).toFixed(2)}</span></div>
+              <button class="btn-primary" style="width:100%;margin-top:1.25rem;padding:1rem;" onclick="proceedToCheckout(${total})">Proceed to Checkout →</button>
+              <a href="/products.html" style="display:block;text-align:center;color:var(--text2);font-size:0.85rem;margin-top:0.75rem;text-decoration:none;">← Continue Shopping</a>
+            </div>
+          </div>`
+      }
+
+      window.updateQty = async (id, newQty, stock) => {
+        if (newQty < 1) return
+        if (newQty > stock) { showToast('Stock limit', `Only ${stock} units available.`, 'error'); return }
+        await supa.from('cart_items').update({ qty: newQty }).eq('id', id)
+        await renderCart()
+      }
+
+      window.removeItem = async (id) => {
+        await supa.from('cart_items').delete().eq('id', id)
+        showToast('Removed', 'Item removed from cart.', 'info', 2000)
+        await renderCart()
+      }
+
+      window.applyPromo = async () => {
+        const code = document.getElementById('promo-input').value.trim().toUpperCase()
+        const res = document.getElementById('promo-result')
+        if (!code) { res.innerHTML = '<span class="err">Enter a promo code.</span>'; return }
+        const now = new Date().toISOString()
+        const { data: promos } = await supa.from('promos').select('*').eq('code', code).lte('valid_from', now).gte('valid_until', now)
+        if (!promos?.length) { res.innerHTML = '<span class="err">Invalid or expired promo code.</span>'; appliedPromo = null; await renderCart(); return }
+        const promo = promos[0]
+        if (promo.max_uses && promo.used_count >= promo.max_uses) { res.innerHTML = '<span class="err">✕ This promo has reached its usage limit.</span>'; return }
+        appliedPromo = { code: promo.code, pct: promo.discount_percent, id: promo.id }
+        await renderCart()
+      }
+
+      window.proceedToCheckout = (totalCents) => {
+        const promoData = appliedPromo ? JSON.stringify(appliedPromo) : null
+        if (promoData) sessionStorage.setItem('applied_promo', promoData)
+        location.href = '/checkout.html'
+      }
     }
   </script>
-  <script type="module" src="/src/main.js"></script>
-  <script>window.addEventListener("load",function(){setTimeout(function(){var l=document.getElementById("page-loader");if(l)l.classList.add("hidden")},600)})</script>
 </body>
 </html>

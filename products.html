@@ -28,6 +28,10 @@
     </div>
     
     <!-- Filters -->
+    <div class="search-bar-wrap" style="max-width:560px;margin:0 auto 1.5rem;">
+      <input type="text" id="product-search" placeholder="Search products, boards, sensors…" oninput="filterBySearch(this.value)">
+      <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    </div>
     <div class="filters">
       <select id="category-filter">
         <option value="">All Categories</option>
@@ -88,47 +92,47 @@
       catSelect.insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.name}</option>`)
     })
     
-    // Load and display products
+    let allProducts = []
+    const urlSearch = new URLSearchParams(location.search).get('search')
+    if (urlSearch) document.getElementById('product-search').value = urlSearch
+
     async function loadProducts(categoryId = '') {
       let query = supa.from('products').select('*').order('created_at', { ascending: false })
       if (categoryId) query = query.eq('category_id', categoryId)
-      
       const { data: products, error } = await query
-      
       const grid = document.getElementById('product-grid')
-      
-      if (error) {
-        grid.innerHTML = '<p style="color:#f44">Error loading products</p>'
-        return
-      }
-      
-      if (!products?.length) {
-        grid.innerHTML = '<p>No products found</p>'
-        return
-      }
-      
+      if (error) { grid.innerHTML = '<p style="color:#f44">Error loading products</p>'; return }
+      if (!products?.length) { grid.innerHTML = '<p>No products found</p>'; return }
+      allProducts = products
+      renderProducts(urlSearch ? products.filter(p => p.name.toLowerCase().includes(urlSearch.toLowerCase()) || (p.description||'').toLowerCase().includes(urlSearch.toLowerCase())) : products)
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('product-grid')
+      if (!products.length) { grid.innerHTML = '<p style="color:var(--text2)">No products match your search.</p>'; return }
       grid.innerHTML = ''
-      products.forEach((p, index) => {
+      products.forEach(p => {
         grid.insertAdjacentHTML('beforeend', `
           <a href="/product-detail.html?slug=${p.slug}" class="product-card">
             <div class="product-image">
-              <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
+              <img src="${p.img_url || '/public/product.png'}" alt="${p.name}">
               ${p.model_url ? '<span class="badge-3d">3D</span>' : ''}
             </div>
             <div class="product-info">
               <h3>${p.name}</h3>
               <p class="product-price">₱${(p.price_cents/100).toFixed(2)}</p>
-              <p class="product-stock">${p.stock > 0 ? '✓ In Stock' : '✗ Out of Stock'}</p>
+              <p class="product-stock" style="color:${p.stock>0?'var(--success)':'var(--error)'}">${p.stock > 0 ? `✓ In Stock (${p.stock})` : '✗ Out of Stock'}</p>
             </div>
-          </a>
-        `)
+          </a>`)
       })
     }
-    
+
     loadProducts()
-    
-    // Filter by category
     catSelect.onchange = (e) => loadProducts(e.target.value)
+
+    window.filterBySearch = (q) => {
+      renderProducts(q ? allProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || (p.description||'').toLowerCase().includes(q.toLowerCase())) : allProducts)
+    }
   </script>
   <script>window.addEventListener("load",function(){setTimeout(function(){var l=document.getElementById("page-loader");if(l)l.classList.add("hidden")},600)})</script>
 </body>

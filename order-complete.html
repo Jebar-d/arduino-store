@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Order Confirmed – Arduino Store</title>
+  <link rel="icon" type="image/png" href="/public/logo2.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css"/>
+  <style>
+    /* ── E-Receipt styles ── */
+    .receipt-card {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); overflow: hidden;
+      margin-bottom: 1.5rem; text-align: left;
+    }
+    .receipt-header {
+      background: linear-gradient(135deg, rgba(119,207,207,0.12), rgba(119,207,207,0.04));
+      padding: 1.5rem; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .receipt-logo { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+    .receipt-logo span { color: var(--text); }
+    .receipt-id { font-family: monospace; font-size: 0.82rem; color: var(--text2); margin-top: 3px; }
+    .receipt-date { font-size: 0.8rem; color: var(--text2); text-align: right; }
+    .receipt-body { padding: 1.25rem 1.5rem; }
+    .receipt-section { margin-bottom: 1.25rem; }
+    .receipt-section-title {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 0.6rem;
+    }
+    .receipt-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 0.35rem 0; font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .receipt-row:last-child { border-bottom: none; }
+    .receipt-row .r-label { color: var(--text2); flex-shrink: 0; margin-right: 1rem; }
+    .receipt-row .r-val { font-weight: 500; color: var(--text); text-align: right; }
+    .receipt-items { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1rem; }
+    .receipt-item {
+      display: flex; gap: 0.75rem; align-items: center;
+      padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .receipt-item:last-child { border-bottom: none; }
+    .receipt-item-name { flex: 1; font-weight: 600; color: var(--text); }
+    .receipt-item-qty  { color: var(--text2); font-size: 0.8rem; }
+    .receipt-item-price { font-weight: 700; color: var(--primary); white-space: nowrap; }
+    .receipt-totals { background: var(--surface-light); border-radius: var(--radius-sm); padding: 1rem; }
+    .totals-row {
+      display: flex; justify-content: space-between;
+      padding: 0.3rem 0; font-size: 0.88rem;
+    }
+    .totals-row .t-label { color: var(--text2); }
+    .totals-row.grand { border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 0.75rem; }
+    .totals-row.grand .t-label { font-weight: 700; color: var(--text); font-size: 1rem; }
+    .totals-row.grand .t-val   { font-weight: 800; color: var(--primary); font-size: 1.05rem; }
+    .receipt-footer {
+      padding: 1rem 1.5rem; border-top: 1px solid var(--border);
+      background: rgba(119,207,207,0.03);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 0.75rem;
+    }
+    .receipt-footer p { font-size: 0.78rem; color: var(--text2); margin: 0; }
+    .badge-paid {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: rgba(74,222,128,0.12); color: var(--success);
+      border: 1px solid rgba(74,222,128,0.2); border-radius: 99px;
+      font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem;
+    }
+    .badge-pending {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: rgba(255,170,0,0.12); color: var(--warning);
+      border: 1px solid rgba(255,170,0,0.2); border-radius: 99px;
+      font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem;
+    }
+    /* Receipt action buttons */
+    .receipt-actions {
+      display: flex; gap: 0.75rem; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .btn-receipt-action {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.65rem 1.25rem; border-radius: var(--radius-sm);
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); transition: all 0.15s; text-decoration: none;
+    }
+    .btn-receipt-action:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-receipt-action.primary { background: var(--primary); color: #000; border-color: var(--primary); }
+    .btn-receipt-action.primary:hover { opacity: 0.88; color: #000; }
+
+    /* Success animation */
+    @keyframes pop-in {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .success-icon-wrap {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(74,222,128,0.12);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+      box-shadow: 0 0 40px rgba(74,222,128,0.2);
+      animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    /* Print styles */
+    @media print {
+      header, footer, .receipt-actions, .order-actions,
+      #rating-section, #tracking-section, #toast-container,
+      #page-loader, .btn-receipt-action { display: none !important; }
+      body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+      .order-success { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      .receipt-card { border: 1px solid #ddd !important; box-shadow: none !important; }
+      .receipt-header { background: #f5f5f5 !important; }
+      .receipt-logo { color: #0071ce !important; }
+      .receipt-item-price { color: #0071ce !important; }
+      .totals-row.grand .t-val { color: #0071ce !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="page-loader"><img src="/public/logo2.png" alt="" class="loader-logo" onerror="this.style.display='none'"><div class="loader-bar-wrap"><div class="loader-bar"></div></div><span class="loader-text">Arduino Store</span></div>
+  <div id="toast-container"></div>
+  <header id="nav"></header>
+
+  <div class="order-success" id="main-content" style="max-width:700px;">
+
+    <div class="success-icon-wrap">
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#4ade80" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1 id="page-title">Order Confirmed!</h1>
+    <p id="page-sub" style="color:var(--text2);margin-bottom:1.75rem;">Thank you for your purchase. Your order has been received and is being processed.</p>
+
+    <!-- E-Receipt -->
+    <div class="receipt-card" id="e-receipt">
+      <div class="receipt-header">
+        <div>
+          <div class="receipt-logo">Arduino<span>Store</span></div>
+          <div class="receipt-id" id="r-order-id">Order #—</div>
+          <div style="margin-top:6px;" id="r-status-badge"></div>
+        </div>
+        <div class="receipt-date" id="r-date"></div>
+      </div>
+
+      <div class="receipt-body">
+        <!-- Items -->
+        <div class="receipt-section">
+          <div class="receipt-section-title">Items Ordered</div>
+          <div class="receipt-items" id="r-items">
+            <div class="receipt-item"><span class="receipt-item-name" style="color:var(--text2);">Loading…</span></div>
+          </div>
+          <!-- Totals -->
+          <div class="receipt-totals" id="r-totals"></div>
+        </div>
+
+        <!-- Delivery & Payment info -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+          <div class="receipt-section">
+            <div class="receipt-section-title">Delivery Address</div>
+            <div style="font-size:0.87rem;color:var(--text);line-height:1.6;" id="r-address">—</div>
+          </div>
+          <div class="receipt-section">
+            <div class="receipt-section-title">Order Details</div>
+            <div class="receipt-row"><span class="r-label">Payment</span><span class="r-val" id="r-payment">—</span></div>
+            <div class="receipt-row"><span class="r-label">Shipping</span><span class="r-val" id="r-shipping">—</span></div>
+            <div class="receipt-row"><span class="r-label">Est. Delivery</span><span class="r-val" id="r-eta" style="color:var(--warning);">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="receipt-footer">
+        <p>Thank you for shopping with Arduino Store! 🙏<br>For support: support@arduinostore.ph</p>
+        <p style="text-align:right;">This is your official e-receipt.<br>Keep it for your records.</p>
+      </div>
+    </div>
+
+    <!-- Receipt actions -->
+    <div class="receipt-actions">
+      <button class="btn-receipt-action" onclick="window.print()">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Receipt
+      </button>
+      <button class="btn-receipt-action" id="email-btn" onclick="sendEmailReceipt()">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Email Receipt
+      </button>
+      <a href="/account.html#purchases" class="btn-receipt-action">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        My Orders
+      </a>
+    </div>
+
+    <!-- Tracking -->
+    <div class="order-receipt" id="tracking-section">
+      <h3>Order Tracking</h3>
+      <div class="tracking-steps">
+        <div class="tracking-step done">
+          <div class="t-dot"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div><div class="t-label">Order Placed</div><div class="t-date" id="track-placed"></div></div>
+        </div>
+        <div class="tracking-step active">
+          <div class="t-dot"></div>
+          <div><div class="t-label">Processing / To Ship</div><div class="t-date">Being prepared at our warehouse</div></div>
+        </div>
+        <div class="tracking-step pending">
+          <div class="t-dot"></div>
+          <div><div class="t-label">Shipped / In Transit</div><div class="t-date">–</div></div>
+        </div>
+        <div class="tracking-step pending">
+          <div class="t-dot"></div>
+          <div><div class="t-label">Out for Delivery</div><div class="t-date">–</div></div>
+        </div>
+        <div class="tracking-step pending">
+          <div class="t-dot"></div>
+          <div><div class="t-label">Delivered</div><div class="t-date" id="track-eta"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rating -->
+    <div class="order-receipt" id="rating-section">
+      <h3>Rate Your Experience</h3>
+      <p style="color:var(--text2);font-size:.88rem;">How was your shopping experience?</p>
+      <div class="rating-stars" id="rating-stars">
+        <button onclick="setRating(1)">★</button>
+        <button onclick="setRating(2)">★</button>
+        <button onclick="setRating(3)">★</button>
+        <button onclick="setRating(4)">★</button>
+        <button onclick="setRating(5)">★</button>
+      </div>
+      <div id="rating-feedback" style="color:var(--text2);font-size:.85rem;min-height:1.2rem;"></div>
+      <textarea id="rating-comment" style="width:100%;margin-top:.75rem;padding:.7rem;background:var(--surface-light);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:.9rem;resize:vertical;min-height:80px;" placeholder="Tell us more about your experience…"></textarea>
+      <button onclick="submitRating()" style="margin-top:.75rem;padding:.65rem 1.5rem;background:var(--primary);color:#000;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">Submit Review</button>
+    </div>
+
+    <div class="order-actions">
+      <a href="/products.html" class="btn-outline">Continue Shopping</a>
+      <button class="btn-danger-outline" onclick="requestRefund()">Request Refund</button>
+      <button class="btn-danger-outline" onclick="cancelOrder()">Cancel Order</button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom"><p>© 2025 Arduino Store. Thank you for your order!</p></div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+
+    /* ── Formspree endpoint (reusing existing form) ── */
+    const FORMSPREE = 'https://formspree.io/f/xpqyplrb'
+
+    window.showToast = (title, msg, type, dur) => {
+      type=type||'info'; dur=dur||3500
+      const icons={success:`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,error:`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,info:`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`}
+      const c=document.getElementById('toast-container'); const t=document.createElement('div')
+      t.className=`toast ${type}`; t.innerHTML=`<span class="toast-icon">${icons[type]||icons.info}</span><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}`
+      c.appendChild(t); setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),300)},dur)
+    }
+    window.addEventListener('load',()=>setTimeout(()=>document.getElementById('page-loader')?.classList.add('hidden'),600))
+
+    const { data:{ session } } = await supa.auth.getSession()
+    const payLabels  = {cod:'Cash on Delivery',gcash:'GCash',maya:'Maya',card:'Credit/Debit Card'}
+    const shipLabels = {standard:'Standard (3–5 days)',express:'Express (1–2 days)',free:'Free Shipping (3–5 days)'}
+
+    /* ── Handle PayMongo redirect back ── */
+    const urlParams   = new URLSearchParams(location.search)
+    const returnedOrderId = urlParams.get('order_id')
+    const paymentStatus   = urlParams.get('payment')
+
+    let order = JSON.parse(sessionStorage.getItem('last_order')||'{}')
+
+    /* If redirected back from PayMongo with order_id, fetch from DB */
+    if (returnedOrderId && !order.id) {
+      const { data: dbOrder } = await supa.from('orders')
+        .select('*, order_items(product_name, qty, price_cents)')
+        .eq('id', returnedOrderId).single()
+      if (dbOrder) {
+        order = {
+          id: dbOrder.id,
+          total: dbOrder.total_cents,
+          items: dbOrder.order_items?.length||0,
+          payment: dbOrder.payment_method,
+          shipping: dbOrder.shipping_method,
+          eta: dbOrder.expected_delivery,
+          address: dbOrder.shipping_address,
+          email: session?.user?.email||'',
+          products: dbOrder.order_items?.map(i=>({name:i.product_name,qty:i.qty,price:i.price_cents}))||[]
+        }
+        sessionStorage.setItem('last_order', JSON.stringify(order))
+      }
+    }
+
+    /* After successful PayMongo payment — clear cart + notify */
+    if (paymentStatus==='success' && session) {
+      await supa.from('cart_items').delete().eq('user_id', session.user.id)
+      const existingPromo = JSON.parse(sessionStorage.getItem('applied_promo')||'null')
+      if (existingPromo?.id) {
+        await supa.rpc('use_promo',{promo_id:existingPromo.id}).catch(()=>{})
+      }
+      sessionStorage.removeItem('applied_promo')
+      if (order.id) {
+        await supa.from('orders').update({status:'paid'}).eq('id', order.id).catch(()=>{})
+        await supa.from('notifications').insert({
+          user_id: session.user.id,
+          title: 'Payment Confirmed',
+          message: `Payment for order #${order.id.substring(0,8).toUpperCase()} confirmed via ${payLabels[order.payment]||order.payment}. Total: ₱${(order.total/100).toFixed(2)}.`,
+          type: 'system', is_read: false
+        }).catch(()=>{})
+      }
+      /* Auto-send receipt email after successful payment */
+      setTimeout(() => sendEmailReceipt(true), 1500)
+    }
+
+    /* ── Populate E-Receipt ── */
+    if (!order.id) {
+      document.getElementById('page-title').textContent = 'No Order Found'
+      document.getElementById('page-sub').textContent = 'Could not find order details. Please check My Orders.'
+    } else {
+      const isPaid = order.payment !== 'cod' && paymentStatus === 'success'
+
+      document.getElementById('r-order-id').textContent = `Order #${order.id.substring(0,8).toUpperCase()}`
+      document.getElementById('r-date').innerHTML = `<div style="font-weight:600;color:var(--text);">${new Date().toLocaleDateString('en-PH',{weekday:'short',year:'numeric',month:'short',day:'numeric'})}</div><div>${new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'})}</div>`
+      document.getElementById('r-status-badge').innerHTML = isPaid
+        ? `<span class="badge-paid"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> PAID</span>`
+        : `<span class="badge-pending"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg> PENDING PAYMENT</span>`
+
+      /* Items */
+      const itemsHtml = order.products?.length
+        ? order.products.map(p=>`
+            <div class="receipt-item">
+              <span class="receipt-item-name">${p.name||p.product_name||'Product'}</span>
+              <span class="receipt-item-qty">× ${p.qty}</span>
+              <span class="receipt-item-price">${p.price ? '₱'+(p.price*p.qty/100).toFixed(2) : ''}</span>
+            </div>`).join('')
+        : `<div class="receipt-item"><span class="receipt-item-name" style="color:var(--text2);">${order.items||0} item(s)</span></div>`
+      document.getElementById('r-items').innerHTML = itemsHtml
+
+      /* Totals */
+      const ship = order.shipping==='express' ? 24900 : order.shipping==='free' ? 0 : 9900
+      const sub  = order.total - ship
+      document.getElementById('r-totals').innerHTML = `
+        <div class="totals-row"><span class="t-label">Subtotal</span><span>₱${(sub/100).toFixed(2)}</span></div>
+        <div class="totals-row"><span class="t-label">Shipping</span><span>${ship===0?'FREE':'₱'+(ship/100).toFixed(2)}</span></div>
+        <div class="totals-row grand"><span class="t-label">Total</span><span class="t-val">₱${(order.total/100).toFixed(2)}</span></div>`
+
+      /* Address */
+      const addr = order.address||{}
+      document.getElementById('r-address').innerHTML = addr.name
+        ? `<strong>${addr.name}</strong><br>${addr.address||''}<br>${addr.city||''}${addr.province?', '+addr.province:''} ${addr.zip||''}<br>${addr.phone||''}`
+        : '—'
+
+      document.getElementById('r-payment').textContent  = payLabels[order.payment]||order.payment||'—'
+      document.getElementById('r-shipping').textContent = shipLabels[order.shipping]||order.shipping||'—'
+      document.getElementById('r-eta').textContent      = order.eta ? `Est. ${order.eta}` : '3–5 business days'
+
+      /* Tracking dates */
+      document.getElementById('track-placed').textContent = new Date().toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})
+      document.getElementById('track-eta').textContent    = order.eta ? `Expected: ${order.eta}` : '3–5 business days'
+    }
+
+    /* ── Email receipt via Formspree ── */
+    window.sendEmailReceipt = async (auto = false) => {
+      if (!order.id) { showToast('No order','No order to send.','error'); return }
+      const btn = document.getElementById('email-btn')
+      if (btn) { btn.disabled=true; btn.innerHTML='Sending…' }
+
+      const addr    = order.address||{}
+      const itemList = order.products?.map(p=>`• ${p.name||p.product_name} × ${p.qty}${p.price?' — ₱'+(p.price*p.qty/100).toFixed(2):''}`).join('\n')||`${order.items} item(s)`
+      const ship     = order.shipping==='express'?24900:order.shipping==='free'?0:9900
+      const subject  = `Arduino Store — Order Confirmed #${order.id.substring(0,8).toUpperCase()}`
+      const body = `
+═══════════════════════════════════
+   ARDUINO STORE — E-RECEIPT
+═══════════════════════════════════
+
+Order ID:   #${order.id.substring(0,8).toUpperCase()}
+Date:       ${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+Status:     ${order.payment==='cod'?'Pending (Cash on Delivery)':'Paid'}
+
+───────────────────────────────────
+ITEMS ORDERED
+───────────────────────────────────
+${itemList}
+
+───────────────────────────────────
+ORDER SUMMARY
+───────────────────────────────────
+Subtotal:   ₱${((order.total-ship)/100).toFixed(2)}
+Shipping:   ${ship===0?'FREE':'₱'+(ship/100).toFixed(2)}
+TOTAL:      ₱${(order.total/100).toFixed(2)}
+
+───────────────────────────────────
+DELIVERY DETAILS
+───────────────────────────────────
+Name:       ${addr.name||'—'}
+Address:    ${addr.address||''}, ${addr.city||''} ${addr.zip||''}
+Phone:      ${addr.phone||'—'}
+Payment:    ${payLabels[order.payment]||order.payment}
+Shipping:   ${shipLabels[order.shipping]||order.shipping}
+Est. Arrival: ${order.eta||'3–5 business days'}
+
+═══════════════════════════════════
+Thank you for shopping with us!
+For support: support@arduinostore.ph
+═══════════════════════════════════`
+
+      try {
+        const res = await fetch(FORMSPREE, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+          body: JSON.stringify({
+            _replyto: order.email||session?.user?.email||'',
+            email:    order.email||session?.user?.email||'',
+            subject,
+            message:  body,
+            name:     addr.name||'Customer',
+            order_id: order.id.substring(0,8).toUpperCase()
+          })
+        })
+        if (res.ok) {
+          if (!auto) showToast('Receipt Sent!','Check your email for your e-receipt.','success',5000)
+        } else {
+          if (!auto) showToast('Failed','Could not send email. Please try again.','error')
+        }
+      } catch {
+        if (!auto) showToast('Network error','Could not reach email service.','error')
+      } finally {
+        if (btn) {
+          btn.disabled=false
+          btn.innerHTML=`<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email Receipt`
+        }
+      }
+    }
+
+    /* ── Rating ── */
+    let selectedRating = 0
+    const ratingLabels = ['','Poor','Fair','Good','Great','Excellent!']
+    window.setRating = (r) => {
+      selectedRating = r
+      document.querySelectorAll('#rating-stars button').forEach((b,i)=>b.classList.toggle('active',i<r))
+      document.getElementById('rating-feedback').textContent = ratingLabels[r]
+    }
+    window.submitRating = async () => {
+      if (!selectedRating) { showToast('Select a rating','Click a star first.','error'); return }
+      if (!session) { showToast('Sign in required','Please log in to leave a review.','info'); return }
+      const comment = document.getElementById('rating-comment')?.value.trim()
+      if (order.products?.length) {
+        for (const p of order.products) {
+          if (p.id) await supa.from('reviews').upsert({ product_id:p.id, user_id:session.user.id, rating:selectedRating, comment:comment||null },{onConflict:'product_id,user_id'}).catch(()=>{})
+        }
+      }
+      showToast('Thank you!','Your review has been submitted.','success')
+      document.getElementById('rating-section').innerHTML = '<p style="color:var(--success);font-weight:600;text-align:center;padding:1rem;">Review submitted! Thank you ★</p>'
+    }
+
+    /* ── Refund ── */
+    window.requestRefund = async () => {
+      if (!order.id) { showToast('No order','Order information not found.','error'); return }
+      const reason = prompt('Please describe the reason for your refund request:')
+      if (reason===null) return
+      if (!session) { showToast('Sign in required','','info'); return }
+      const { error } = await supa.from('refund_requests').insert({order_id:order.id,user_id:session.user.id,reason:reason||'No reason provided',status:'pending'})
+      if (error) { showToast('Error','Could not submit refund. Please contact support.','error'); return }
+      await supa.from('notifications').insert({user_id:session.user.id,title:'Refund Requested',message:`Refund request submitted for order #${order.id.substring(0,8).toUpperCase()}. We'll respond within 24–48 hours.`,type:'system',is_read:false}).catch(()=>{})
+      showToast('Refund Requested','Our team will review and contact you within 24–48 hours.','success',6000)
+    }
+
+    /* ── Cancel Order ── */
+    window.cancelOrder = async () => {
+      if (!order.id) { showToast('No order','Order information not found.','error'); return }
+      if (!confirm('Are you sure you want to cancel this order? This cannot be undone.')) return
+      if (!session) { showToast('Sign in required','','info'); return }
+      const { data: dbOrder } = await supa.from('orders').select('created_at,status,cancelled_at').eq('id',order.id).single()
+      if (dbOrder?.cancelled_at) { showToast('Already cancelled','This order was already cancelled.','info'); return }
+      if (dbOrder?.status==='shipped') { showToast('Cannot cancel','Order has already shipped. Request a refund instead.','error'); return }
+      const age = new Date() - new Date(dbOrder?.created_at||0)
+      if (age > 60*60*1000) { showToast('Cannot cancel','Orders can only be cancelled within 1 hour of placement.','error',5000); return }
+      const { error } = await supa.from('orders').update({status:'cancelled',cancelled_at:new Date().toISOString(),cancel_reason:'Customer requested cancellation'}).eq('id',order.id)
+      if (error) { showToast('Error','Could not cancel. Please contact support.','error'); return }
+      await supa.from('notifications').insert({user_id:session.user.id,title:'Order Cancelled',message:`Order #${order.id.substring(0,8).toUpperCase()} has been cancelled.`,type:'system',is_read:false}).catch(()=>{})
+      showToast('Order Cancelled','Your order has been cancelled.','info',6000)
+      document.querySelectorAll('.btn-danger-outline').forEach(b=>b.disabled=true)
+    }
+  </script>
+</body>
+</html>

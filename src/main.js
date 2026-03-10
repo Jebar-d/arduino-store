@@ -1,5 +1,9 @@
 import { onAuthChange } from './auth.js'
 import { headerPartial } from './header.js'
+import { initTheme } from './theme.js'
+
+// Apply theme FIRST to avoid flash
+initTheme()
 import { supaAuth } from './auth.js'
 
 // Initialize header on auth state change

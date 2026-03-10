@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>FAQ – Arduino Store</title>
+  <link rel="icon" type="image/png" href="/public/logo2.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css"/>
+</head>
+<body>
+  <div id="page-loader"><img src="/public/logo2.png" alt="" class="loader-logo" onerror="this.style.display='none'"><div class="loader-bar-wrap"><div class="loader-bar"></div></div><span class="loader-text">Arduino Store</span></div>
+  <header id="nav"></header>
+  <main class="container">
+    <div class="page-header"><h1>❓ Frequently Asked Questions</h1><p>Find quick answers to common questions about orders, shipping, and our products.</p></div>
+
+    <div style="max-width:700px;margin:0 auto 1.5rem;">
+      <div class="search-bar-wrap" style="max-width:100%;margin-bottom:0;">
+        <input type="text" id="faq-search" placeholder="Search FAQs…" oninput="filterFAQ(this.value)">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="faq-list" id="faq-list">
+      <!-- Orders -->
+      <h3 style="color:var(--primary);margin:1.5rem 0 0.75rem;font-size:0.88rem;text-transform:uppercase;letter-spacing:0.08em;">📦 Orders & Shipping</h3>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">How long does shipping take?<span class="faq-icon">▼</span></div><div class="faq-a">Standard delivery takes 3–5 business days nationwide. Express delivery is 1–2 business days. We ship to all provinces in the Philippines via J&T Express, LBC, and Ninja Van.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Do you offer free shipping?<span class="faq-icon">▼</span></div><div class="faq-a">Yes! Orders totaling ₱1,500 or more qualify for FREE standard shipping. Just use promo code <strong style="color:var(--primary);">FREESHIP</strong> at checkout, or it may be applied automatically.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Can I track my order?<span class="faq-icon">▼</span></div><div class="faq-a">Absolutely. Once your order is shipped, you'll receive a tracking number via email. You can also check your order status in My Account → My Purchases.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Can I cancel my order?<span class="faq-icon">▼</span></div><div class="faq-a">Orders can be cancelled within 1 hour of placement, as long as they haven't been packed yet. Go to My Account → My Purchases → Cancel Order, or contact us immediately via Live Chat or email.</div></div>
+
+      <h3 style="color:var(--primary);margin:1.5rem 0 0.75rem;font-size:0.88rem;text-transform:uppercase;letter-spacing:0.08em;">💳 Payment & Promos</h3>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">What payment methods do you accept?<span class="faq-icon">▼</span></div><div class="faq-a">We accept Cash on Delivery (COD), GCash, Maya/PayMaya, and bank transfers (BPI, BDO, Metrobank). All payments are processed securely.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">How do I use a promo code?<span class="faq-icon">▼</span></div><div class="faq-a">Add items to your cart, then go to checkout. On the Cart page, enter your promo code in the "Promo Code" field and click Apply. The discount will be reflected in your order total immediately.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Can I use multiple promo codes?<span class="faq-icon">▼</span></div><div class="faq-a">Only one promo code can be applied per order at this time. We recommend using the code with the highest discount value for your order.</div></div>
+
+      <h3 style="color:var(--primary);margin:1.5rem 0 0.75rem;font-size:0.88rem;text-transform:uppercase;letter-spacing:0.08em;">🔧 Products & Technical</h3>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Are your Arduino products genuine?<span class="faq-icon">▼</span></div><div class="faq-a">Yes, all our boards are 100% genuine Arduino products sourced from official distributors. We also carry high-quality compatible components that are clearly labeled as compatible (not official Arduino brand).</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Do you provide technical support?<span class="faq-icon">▼</span></div><div class="faq-a">Yes! We offer free technical guidance for all customers. Contact us via email or live chat with your project questions. Our team includes experienced Arduino developers who can help troubleshoot and guide you.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">Do you accept bulk or wholesale orders?<span class="faq-icon">▼</span></div><div class="faq-a">Yes! We cater to schools, universities, and businesses with bulk pricing available for orders of 10+ units. Contact us at sales@arduinostore.ph for a quote and special pricing.</div></div>
+
+      <h3 style="color:var(--primary);margin:1.5rem 0 0.75rem;font-size:0.88rem;text-transform:uppercase;letter-spacing:0.08em;">↩ Returns & Refunds</h3>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">What is your return policy?<span class="faq-icon">▼</span></div><div class="faq-a">We accept returns within 7 days of delivery for defective or incorrectly shipped items. Items must be in original packaging and unused. Visit our <a href="/returns.html" style="color:var(--primary)">Returns Policy</a> page for full details.</div></div>
+      <div class="faq-item"><div class="faq-q" onclick="toggleFAQ(this)">My item arrived damaged. What do I do?<span class="faq-icon">▼</span></div><div class="faq-a">Take photos of the damaged item and packaging immediately. Contact us within 48 hours of receipt at support@arduinostore.ph with your order ID and photos. We'll arrange a replacement or full refund.</div></div>
+    </div>
+
+    <div style="text-align:center;margin-top:2.5rem;padding:2rem;background:var(--surface);border-radius:var(--radius);border:1px solid rgba(255,255,255,0.07);">
+      <h3 style="margin-bottom:0.5rem;">Still have questions?</h3>
+      <p style="color:var(--text2);margin-bottom:1.25rem;">Our support team is ready to help you.</p>
+      <a href="/contact.html" class="btn-primary" style="display:inline-block;padding:0.75rem 2rem;">📬 Contact Support</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-bottom"><p>© 2025 Arduino Store.</p></div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+  <script>
+    window.addEventListener('load',()=>setTimeout(()=>document.getElementById('page-loader')?.classList.add('hidden'),600))
+    window.toggleFAQ = (el) => {
+      const item = el.closest('.faq-item')
+      item.classList.toggle('open')
+    }
+    window.filterFAQ = (q) => {
+      document.querySelectorAll('.faq-item').forEach(item => {
+        const text = item.textContent.toLowerCase()
+        item.style.display = text.includes(q.toLowerCase()) ? 'block' : 'none'
+      })
+      document.querySelectorAll('.faq-list h3').forEach(h => h.style.display = q ? 'none' : 'block')
+    }
+  </script>
+</body>
+</html>

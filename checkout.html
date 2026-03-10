@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Checkout – Arduino Store</title>
+  <link rel="icon" type="image/png" href="/public/logo2.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css"/>
+  <style>
+    .pay-detail-panel {
+      margin-top: 1rem; padding: 1.1rem 1.25rem;
+      border-radius: var(--radius); display: none;
+      font-size: 0.88rem; line-height: 1.6;
+    }
+    .pay-detail-panel.show { display: block; }
+    .pay-detail-panel.gcash { background: rgba(0,113,206,0.07); border: 1px solid rgba(0,113,206,0.2); }
+    .pay-detail-panel.maya  { background: rgba(0,160,80,0.07);  border: 1px solid rgba(0,160,80,0.2); }
+    .pay-detail-panel.card  { background: rgba(119,207,207,0.06); border: 1px solid rgba(119,207,207,0.15); }
+    .pay-detail-panel.cod   { background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.15); }
+    .pay-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.25rem 0.7rem; border-radius: 99px;
+      font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem;
+    }
+    .pay-badge.gcash { background: rgba(0,113,206,0.15); color: #0071ce; }
+    .pay-badge.maya  { background: rgba(0,160,80,0.15);  color: #00a050; }
+    .pay-badge.card  { background: rgba(119,207,207,0.15); color: var(--primary); }
+    .pay-badge.cod   { background: rgba(255,170,0,0.15); color: var(--warning); }
+    .paymongo-btn {
+      width: 100%; padding: 0.85rem; border: none; border-radius: var(--radius-sm);
+      font-weight: 700; font-size: 0.95rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      transition: opacity 0.2s; margin-top: 0.75rem;
+    }
+    .paymongo-btn.gcash { background: #0071ce; color: #fff; }
+    .paymongo-btn.maya  { background: #00a050; color: #fff; }
+    .paymongo-btn.card  { background: var(--primary); color: #000; }
+    .paymongo-btn:hover { opacity: 0.88; }
+    .paymongo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .test-hint {
+      font-size: 0.76rem; color: var(--text2);
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; margin-top: 0.6rem;
+    }
+    .test-hint strong { color: var(--warning); }
+  </style>
+</head>
+<body>
+  <div id="page-loader"><img src="/public/logo2.png" alt="" class="loader-logo" onerror="this.style.display='none'"><div class="loader-bar-wrap"><div class="loader-bar"></div></div><span class="loader-text">Checkout</span></div>
+  <div id="toast-container"></div>
+  <header id="nav"></header>
+
+  <div class="checkout-container">
+    <h1>Checkout</h1>
+    <div class="checkout-steps">
+      <div class="checkout-step active">1. Address</div>
+      <div class="checkout-step">2. Shipping</div>
+      <div class="checkout-step">3. Payment</div>
+      <div class="checkout-step">4. Confirm</div>
+    </div>
+    <div id="checkout-body">Loading…</div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-bottom"><p>© 2025 Arduino Store. Secure Checkout</p></div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const supa = createClient(
+      'https://tyhocgrjwxswxzzfvwct.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+    )
+
+    /* ── Xendit handled server-side via Supabase Edge Function ── */
+
+    window.showToast = (title, msg, type, dur) => {
+      type=type||'info'; dur=dur||3500
+      const icons={success:`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`,error:`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,info:`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`}
+      const c=document.getElementById('toast-container'); const t=document.createElement('div')
+      t.className=`toast ${type}`; t.innerHTML=`<span class="toast-icon">${icons[type]||icons.info}</span><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}`
+      c.appendChild(t); setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),300)},dur)
+    }
+    window.addEventListener('load',()=>setTimeout(()=>document.getElementById('page-loader')?.classList.add('hidden'),600))
+
+    /* ── Auth & cart ── */
+    const { data:{ session } } = await supa.auth.getSession()
+    if (!session) { location.href='/login.html'; throw '' }
+
+    const { data: cartItems } = await supa.from('cart_items').select('*, products(*)').eq('user_id', session.user.id)
+    if (!cartItems?.length) { location.href='/cart.html'; throw '' }
+
+    const appliedPromo = JSON.parse(sessionStorage.getItem('applied_promo')||'null')
+    let subtotal = cartItems.reduce((s,i)=>s+i.products.price_cents*i.qty,0)
+    let discount = appliedPromo ? Math.round(subtotal*appliedPromo.pct/100) : 0
+    let selectedShipping = 'standard'
+    let selectedPayment  = 'gcash'
+
+    const { data: profile } = await supa.from('profiles').select('*').eq('id',session.user.id).single()
+
+    render()
+
+    function shipCost() {
+      if (selectedShipping==='free')    return 0
+      if (selectedShipping==='express') return 24900
+      return 9900
+    }
+    function calcTotal() { return subtotal - discount + shipCost() }
+    function etaDate(days) {
+      const d=new Date(); d.setDate(d.getDate()+days)
+      return d.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
+    }
+
+    function render() {
+      const total = calcTotal()
+      const cartHtml = cartItems.map(i=>`
+        <div style="display:flex;gap:.75rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <img src="${i.products.img_url||'/public/product.png'}" style="width:46px;height:46px;object-fit:contain;border-radius:6px;background:var(--surface-light);" onerror="this.src='/public/product.png'">
+          <div style="flex:1"><div style="font-weight:600;font-size:.88rem;">${i.products.name}</div><div style="color:var(--text2);font-size:.78rem;">Qty: ${i.qty}</div></div>
+          <div style="font-weight:700;color:var(--primary);font-size:.9rem;">₱${(i.products.price_cents*i.qty/100).toFixed(2)}</div>
+        </div>`).join('')
+
+      document.getElementById('checkout-body').innerHTML = `
+        <div class="checkout-layout">
+          <div>
+            <!-- Address -->
+            <div class="checkout-section">
+              <h3><span class="step-num">1</span>Delivery Address</h3>
+              <div class="form-grid">
+                <div class="form-group"><label>First Name *</label><input id="fname" value="${profile?.first_name||''}" placeholder="Juan"></div>
+                <div class="form-group"><label>Last Name *</label><input id="lname" value="${profile?.last_name||''}" placeholder="Dela Cruz"></div>
+                <div class="form-group full"><label>Address *</label><input id="addr" value="${profile?.address||''}" placeholder="House/Unit No., Street, Barangay"></div>
+                <div class="form-group"><label>City *</label><input id="city" placeholder="Manila"></div>
+                <div class="form-group"><label>Province</label><input id="province" placeholder="Metro Manila"></div>
+                <div class="form-group"><label>ZIP Code</label><input id="zip" placeholder="1000"></div>
+                <div class="form-group full"><label>Contact Number *</label><input id="phone" value="${profile?.contact_number||''}" placeholder="+63 9XX XXX XXXX"></div>
+                <div class="form-group full"><label>Order Notes (optional)</label><textarea id="notes" placeholder="Special instructions…"></textarea></div>
+              </div>
+            </div>
+
+            <!-- Shipping -->
+            <div class="checkout-section">
+              <h3><span class="step-num">2</span>Shipping Method</h3>
+              <div class="shipping-options">
+                <label class="shipping-option ${selectedShipping==='standard'?'selected':''}" onclick="selectShipping('standard',this)">
+                  <input type="radio" name="shipping" ${selectedShipping==='standard'?'checked':''}>
+                  <div class="ship-info"><div class="ship-name">Standard Delivery</div><div class="ship-eta">3–5 business days · Est. ${etaDate(4)}</div></div>
+                  <div class="ship-price">₱99.00</div>
+                </label>
+                <label class="shipping-option ${selectedShipping==='express'?'selected':''}" onclick="selectShipping('express',this)">
+                  <input type="radio" name="shipping" ${selectedShipping==='express'?'checked':''}>
+                  <div class="ship-info"><div class="ship-name">Express Delivery</div><div class="ship-eta">1–2 business days · Est. ${etaDate(2)}</div></div>
+                  <div class="ship-price">₱249.00</div>
+                </label>
+                <label class="shipping-option ${selectedShipping==='free'?'selected':''}" style="${subtotal<150000?'opacity:.5;cursor:not-allowed':''}" onclick="${subtotal>=150000?`selectShipping('free',this)`:`showToast('Free Shipping','Add ₱${((150000-subtotal)/100).toFixed(2)} more to qualify.','info')`}">
+                  <input type="radio" name="shipping" ${selectedShipping==='free'?'checked':''} ${subtotal<150000?'disabled':''}>
+                  <div class="ship-info"><div class="ship-name">Free Shipping</div><div class="ship-eta">${subtotal>=150000?`3–5 business days · Est. ${etaDate(4)}`:'Minimum order ₱1,500.00 required'}</div></div>
+                  <div class="ship-price" style="color:var(--success)">FREE</div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Payment -->
+            <div class="checkout-section">
+              <h3><span class="step-num">3</span>Payment Method</h3>
+              <div class="payment-options">
+
+                <label class="payment-option ${selectedPayment==='gcash'?'selected':''}" onclick="selectPayment('gcash',this)">
+                  <input type="radio" name="payment" ${selectedPayment==='gcash'?'checked':''}>
+                  <div class="payment-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#0071ce" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3"/></svg></div>
+                  <div class="payment-info"><div class="pay-name">GCash</div><div class="pay-desc">Pay via GCash e-wallet</div></div>
+                </label>
+                <div id="panel-gcash" class="pay-detail-panel gcash ${selectedPayment==='gcash'?'show':''}">
+                  <span class="pay-badge gcash">GCash</span>
+                  <p style="color:var(--text2);margin:0 0 .5rem;">You'll be redirected to GCash to complete your payment securely via Xendit.</p>
+                  <div class="test-hint"><strong>Test mode:</strong> Click "Proceed to Pay" on the mock page. No real money is charged.</div>
+                </div>
+
+                <label class="payment-option ${selectedPayment==='maya'?'selected':''}" onclick="selectPayment('maya',this)">
+                  <input type="radio" name="payment" ${selectedPayment==='maya'?'checked':''}>
+                  <div class="payment-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00a050" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/><path d="M7 15h2m4 0h4"/></svg></div>
+                  <div class="payment-info"><div class="pay-name">Maya</div><div class="pay-desc">Pay via Maya / PayMaya</div></div>
+                </label>
+                <div id="panel-maya" class="pay-detail-panel maya ${selectedPayment==='maya'?'show':''}">
+                  <span class="pay-badge maya">Maya</span>
+                  <p style="color:var(--text2);margin:0 0 .5rem;">You'll be redirected to Maya to complete your payment securely via Xendit.</p>
+                  <div class="test-hint"><strong>Test mode:</strong> Click "Proceed to Pay" on the mock page. No real money is charged.</div>
+                </div>
+
+                <label class="payment-option ${selectedPayment==='card'?'selected':''}" onclick="selectPayment('card',this)">
+                  <input type="radio" name="payment" ${selectedPayment==='card'?'checked':''}>
+                  <div class="payment-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+                  <div class="payment-info"><div class="pay-name">Credit / Debit Card</div><div class="pay-desc">Visa, Mastercard, JCB</div></div>
+                </label>
+                <div id="panel-card" class="pay-detail-panel card ${selectedPayment==='card'?'show':''}">
+                  <span class="pay-badge card">Card</span>
+                  <p style="color:var(--text2);margin:0 0 .5rem;">Secured by PayMongo. Your card details are never stored on our servers.</p>
+                  <div class="test-hint"><strong>Test card:</strong> 4343 4343 4343 4345 · Exp: any future date · CVV: any 3 digits</div>
+                </div>
+
+                <label class="payment-option ${selectedPayment==='cod'?'selected':''}" onclick="selectPayment('cod',this)">
+                  <input type="radio" name="payment" ${selectedPayment==='cod'?'checked':''}>
+                  <div class="payment-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><path d="M6 15h4"/></svg></div>
+                  <div class="payment-info"><div class="pay-name">Cash on Delivery</div><div class="pay-desc">Pay when your order arrives</div></div>
+                </label>
+                <div id="panel-cod" class="pay-detail-panel cod ${selectedPayment==='cod'?'show':''}">
+                  <span class="pay-badge cod">COD</span>
+                  <p style="color:var(--text2);margin:0;">Prepare exact amount upon delivery. Available for Metro Manila and nearby areas only.</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary sidebar -->
+          <div>
+            <div class="cart-summary" style="position:sticky;top:90px;">
+              <h3>Order Summary</h3>
+              ${cartHtml}
+              <div style="margin-top:1rem;"></div>
+              <div class="summary-row"><span>Subtotal</span><span>₱${(subtotal/100).toFixed(2)}</span></div>
+              ${discount?`<div class="summary-row discount"><span>Promo (${appliedPromo.pct}% off)</span><span>−₱${(discount/100).toFixed(2)}</span></div>`:''}
+              <div class="summary-row"><span>Shipping</span><span>${shipCost()===0?'<span style="color:var(--success)">FREE</span>':'₱'+(shipCost()/100).toFixed(2)}</span></div>
+              <div class="summary-row total"><span>Total</span><span>₱${(total/100).toFixed(2)}</span></div>
+              <button class="btn-primary" style="width:100%;margin-top:1.25rem;padding:1rem;font-size:1rem;" id="place-order-btn" onclick="placeOrder()">
+                Place Order
+              </button>
+              <p style="font-size:.75rem;color:var(--text2);text-align:center;margin-top:.75rem;">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:3px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Secured by PayMongo
+              </p>
+            </div>
+          </div>
+        </div>`
+    }
+
+    window.selectShipping = (type, el) => {
+      selectedShipping = type
+      document.querySelectorAll('.shipping-option').forEach(o=>o.classList.remove('selected'))
+      el.classList.add('selected')
+      render()
+    }
+    window.selectPayment = (type, el) => {
+      selectedPayment = type
+      document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'))
+      document.querySelectorAll('.pay-detail-panel').forEach(p=>p.classList.remove('show'))
+      el.classList.add('selected')
+      document.getElementById(`panel-${type}`)?.classList.add('show')
+    }
+
+    /* ── Place Order ── */
+    window.placeOrder = async () => {
+      const fname = document.getElementById('fname')?.value.trim()
+      const lname = document.getElementById('lname')?.value.trim()
+      const addr  = document.getElementById('addr')?.value.trim()
+      const city  = document.getElementById('city')?.value.trim()
+      const phone = document.getElementById('phone')?.value.trim()
+      if (!fname||!lname||!addr||!city||!phone) {
+        showToast('Missing info','Please fill all required fields.','error'); return
+      }
+
+      const btn = document.getElementById('place-order-btn')
+      btn.disabled = true; btn.textContent = 'Processing…'
+
+      const shippingAddress = {
+        name: `${fname} ${lname}`, address: addr,
+        city, province: document.getElementById('province')?.value.trim()||'',
+        zip: document.getElementById('zip')?.value.trim()||'',
+        phone, notes: document.getElementById('notes')?.value.trim()||''
+      }
+      const totalCents  = calcTotal()
+      const etaDays     = selectedShipping==='express' ? 2 : 4
+      const expectedDate = new Date(); expectedDate.setDate(expectedDate.getDate()+etaDays)
+
+      /* 1. Create order in DB (status=pending until payment confirmed) */
+      const { data: order, error: oErr } = await supa.from('orders').insert({
+        user_id: session.user.id,
+        total_cents: totalCents,
+        promo_code: appliedPromo?.code||null,
+        status: 'pending',
+        shipping_address: shippingAddress,
+        shipping_method: selectedShipping,
+        payment_method: selectedPayment,
+        tracking_status: 'processing',
+        expected_delivery: expectedDate.toISOString().split('T')[0],
+        notes: shippingAddress.notes
+      }).select().single()
+
+      if (oErr) {
+        showToast('Error','Failed to create order. Please try again.','error')
+        btn.disabled=false; btn.textContent='Place Order'; return
+      }
+
+      /* 2. Save order items */
+      for (const item of cartItems) {
+        await supa.from('order_items').insert({
+          order_id: order.id,
+          product_id: item.product_id||item.products?.id,
+          qty: item.qty,
+          price_cents: item.products.price_cents,
+          product_name: item.products.name,
+          product_img: item.products.img_url||''
+        })
+        const { error: rpcErr } = await supa.rpc('reduce_stock',{p_id:item.product_id||item.products.id,qty:item.qty})
+        if (rpcErr) await supa.from('products').update({stock:Math.max(0,item.products.stock-item.qty)}).eq('id',item.product_id||item.products.id)
+      }
+
+      /* 3. Stash order info for the completion page */
+      const orderMeta = {
+        id: order.id,
+        total: totalCents,
+        items: cartItems.length,
+        payment: selectedPayment,
+        shipping: selectedShipping,
+        eta: etaDate(etaDays),
+        address: shippingAddress,
+        email: session.user.email,
+        products: cartItems.map(i=>({
+          id: i.product_id||i.products.id,
+          name: i.products.name,
+          qty: i.qty,
+          price: i.products.price_cents
+        }))
+      }
+      sessionStorage.setItem('last_order', JSON.stringify(orderMeta))
+
+      /* 4. COD → skip Xendit, go straight to confirmation */
+      if (selectedPayment==='cod') {
+        await finishOrder(order.id)
+        location.href='/order-complete.html'
+        return
+      }
+
+      /* 5. GCash / Maya → Supabase Edge Function → Xendit */
+      if (selectedPayment==='gcash' || selectedPayment==='maya') {
+        const channelCode = selectedPayment==='gcash' ? 'GCASH' : 'PAYMAYA'
+        try {
+          const res = await fetch('https://tyhocgrjwxswxzzfvwct.supabase.co/functions/v1/xendit-ewallet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: order.id,
+              amount: totalCents / 100,
+              channel_code: channelCode,
+              success_url: `${location.origin}/order-complete.html?order_id=${order.id}&payment=success`,
+              failure_url: `${location.origin}/checkout.html?payment=failed`
+            })
+          })
+          const data = await res.json()
+          if (!res.ok || data?.error) throw new Error(data?.error || 'Payment error')
+          if (!data?.checkout_url) throw new Error('No checkout URL returned')
+          window.location.href = data.checkout_url
+        } catch (err) {
+          showToast('Payment Error', err.message, 'error')
+          btn.disabled=false; btn.textContent='Place Order'
+        }
+        return
+      }
+
+      /* 6. Card → Xendit Invoice (hosted checkout with card support) */
+      if (selectedPayment==='card') {
+        try {
+          const invRes = await fetch('https://api.xendit.co/v2/invoices', {
+            method: 'POST',
+            headers: { 'Authorization': XND_AUTH, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              external_id: order.id,
+              amount: totalCents / 100,
+              currency: 'PHP',
+              description: `Arduino Store Order #${order.id.substring(0,8).toUpperCase()}`,
+              payer_email: session.user.email,
+              customer: { given_names: shippingAddress.name, email: session.user.email, mobile_number: phone },
+              success_redirect_url: `${location.origin}/order-complete.html?order_id=${order.id}&payment=success`,
+              failure_redirect_url: `${location.origin}/checkout.html?payment=failed`,
+              payment_methods: ['CREDIT_CARD', 'DEBIT_CARD'],
+              items: cartItems.map(i => ({
+                name: i.products.name,
+                quantity: i.qty,
+                price: i.products.price_cents / 100,
+                category: 'Electronics'
+              }))
+            })
+          })
+          const inv = await invRes.json()
+          if (!invRes.ok) throw new Error(inv?.message || 'Xendit invoice error')
+          window.location.href = inv.invoice_url
+        } catch (err) {
+          showToast('Payment Error', err.message, 'error')
+          btn.disabled=false; btn.textContent='Place Order'
+        }
+        return
+      }
+    }
+
+    /* ── Finish order (clear cart, notify, promo) ── */
+    async function finishOrder(orderId) {
+      await supa.from('cart_items').delete().eq('user_id',session.user.id)
+      if (appliedPromo?.id) {
+        await supa.rpc('use_promo',{promo_id:appliedPromo.id}).catch(()=>
+          supa.from('promos').update({used_count:(appliedPromo.used_count||0)+1}).eq('id',appliedPromo.id)
+        )
+      }
+      sessionStorage.removeItem('applied_promo')
+      const payLabels={cod:'Cash on Delivery',gcash:'GCash',maya:'Maya',card:'Credit/Debit Card'}
+      await supa.from('notifications').insert({
+        user_id: session.user.id,
+        title: 'Order Confirmed',
+        message: `Your order #${orderId.substring(0,8).toUpperCase()} has been placed via ${payLabels[selectedPayment]||selectedPayment}.`,
+        type: 'system', is_read: false
+      }).catch(()=>{})
+    }
+
+    /* ── Handle failed payment redirect back ── */
+    const params = new URLSearchParams(location.search)
+    if (params.get('payment')==='failed') {
+      showToast('Payment Failed','Your payment was not completed. Please try again.','error',6000)
+    }
+  </script>
+</body>
+</html>

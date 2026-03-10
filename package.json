@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "supabase": "^2.78.1",
     "vite": "^7.2.4"
   },
   "dependencies": {

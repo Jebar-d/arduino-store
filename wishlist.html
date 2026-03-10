@@ -1,126 +1,118 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Arduino Store</title>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist – Arduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
-
-  <!-- PAGE LOADER -->
-  <div id="page-loader">
-    <img src="/public/logo2.png" alt="Loading" class="loader-logo" onerror="this.style.display='none'">
-    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
-    <span class="loader-text">Arduino Store</span>
-  </div>
-
-  <!-- TOAST CONTAINER -->
+  <div id="page-loader"><img src="/public/logo2.png" alt="" class="loader-logo" onerror="this.style.display='none'"><div class="loader-bar-wrap"><div class="loader-bar"></div></div><span class="loader-text">Arduino Store</span></div>
   <div id="toast-container"></div>
-  <!-- Header Navigation -->
   <header id="nav"></header>
-  
-  <!-- Wishlist Content -->
-  <main class="cart-container">
-    <h1>My Wishlist</h1>
-    <div id="items">Loading...</div>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>My Wishlist <span id="wishlist-count-badge" style="background:#3b82f6;color:#fff;font-size:0.82rem;padding:2px 10px;border-radius:12px;font-weight:700;display:none;">0</span></h1>
+      <p>Items you've saved for later</p>
+    </div>
+    <div class="search-bar-wrap" style="max-width:440px;margin-bottom:2rem;">
+      <input type="text" id="wl-search" placeholder="Search your wishlist…" oninput="filterWishlist(this.value)">
+      <span class="search-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    </div>
+    <div id="wl-items" class="featured-grid">Loading...</div>
   </main>
 
-  <!-- Footer -->
   <footer class="site-footer">
     <div class="footer-grid">
-      <div class="footer-brand">
-        <img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'">
-        <p>Your one-stop shop for Arduino components, boards, and maker supplies in the Philippines.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Shop</h4>
-        <a href="/products.html">All Products</a>
-        <a href="/products.html">Boards</a>
-        <a href="/products.html">Sensors</a>
-        <a href="/products.html">Starter Kits</a>
-      </div>
-      <div class="footer-col">
-        <h4>Account</h4>
-        <a href="/login.html">Login</a>
-        <a href="/signup.html">Sign Up</a>
-        <a href="/account.html">My Account</a>
-        <a href="/wishlist.html">Wishlist</a>
-      </div>
-      <div class="footer-col">
-        <h4>Support</h4>
-        <a href="#">FAQ</a>
-        <a href="#">Shipping Info</a>
-        <a href="#">Returns Policy</a>
-        <a href="#">Contact Us</a>
-      </div>
+      <div class="footer-brand"><img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'"><p>Your one-stop shop for Arduino components in the Philippines.</p></div>
+      <div class="footer-col"><h4>Shop</h4><a href="/products.html">All Products</a></div>
+      <div class="footer-col"><h4>Account</h4><a href="/account.html">My Account</a><a href="/cart.html">Cart</a></div>
+      <div class="footer-col"><h4>Info</h4><a href="/faq.html">FAQ</a><a href="/contact.html">Contact Us</a></div>
     </div>
-    <div class="footer-bottom">
-      <p>&copy; 2025 Arduino Store. Built with love for makers in the Philippines.</p>
-    </div>
+    <div class="footer-bottom"><p>© 2025 Arduino Store.</p></div>
   </footer>
-  
+
+  <script type="module" src="/src/main.js"></script>
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
-    
-    const itemsEl = document.getElementById('items')
-    
-    const supa = createClient(
-      'https://tyhocgrjwxswxzzfvwct.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
-    )
-    
-    const { data: { session } } = await supa.auth.getSession()
-    
+    const supa = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+
+    window.showToast = (title, msg, type, dur) => {
+      type=type||'info'; dur=dur||3500
+      const icons={success:'✓',error:'✕',info:'ℹ'}
+      const c=document.getElementById('toast-container'); const t=document.createElement('div')
+      t.className='toast '+type; t.innerHTML=`<span class="toast-icon">${icons[type]}</span><div class="toast-title">${title}</div>${msg?`<div class="toast-msg">${msg}</div>`:''}`
+      c.appendChild(t); setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),300)},dur)
+    }
+    window.addEventListener('load',()=>setTimeout(()=>document.getElementById('page-loader')?.classList.add('hidden'),600))
+
+    const { data:{ session } } = await supa.auth.getSession()
+    const el = document.getElementById('wl-items')
+    let allWlItems = []
+
     if (!session) {
-      itemsEl.innerHTML = '<div class="empty-state"><p>Please <a href="/login.html">login</a> to view your wishlist</p></div>'
-      throw new Error('No session')
-    }
-    
-    const { data: wishlist, error } = await supa
-      .from('wishlists')
-      .select('*, products(*)')
-      .eq('user_id', session.user.id)
-    
-    if (error) {
-      itemsEl.innerHTML = '<p style="color:#f44">Error: ' + error.message + '</p>'
-      throw error
-    }
-    
-    if (!wishlist || wishlist.length === 0) {
-      itemsEl.innerHTML = '<div class="empty-state"><h3>Your wishlist is empty</h3><p><a href="/products.html">Browse products</a> to save items</p></div>'
+      el.innerHTML = '<div class="empty-state"><h3>Please <a href="/login.html">log in</a> to view your wishlist</h3></div>'
     } else {
-      itemsEl.innerHTML = ''
-      
-      wishlist.forEach(item => {
-        const p = item.products
-        
-        itemsEl.innerHTML += `
-          <div class="wishlist-item">
-            <img src="${p.img_url || '/placeholder.png'}" alt="${p.name}">
-            <div class="item-info">
-              <h3>${p.name}</h3>
-              <p class="item-price">$${(p.price_cents/100).toFixed(2)}</p>
-            </div>
-            <div class="item-actions">
-              <a href="/product-detail.html?slug=${p.slug}" class="btn-view">View</a>
-              <button class="btn-remove" onclick="removeWish('${item.id}')">♥ Remove</button>
+      const { data: wlItems } = await supa.from('wishlists').select('*, products(*)').eq('user_id', session.user.id).order('created_at', { ascending: false })
+      allWlItems = wlItems || []
+
+      const badge = document.getElementById('wishlist-count-badge')
+      if (allWlItems.length) { badge.textContent = allWlItems.length; badge.style.display = 'inline'; }
+
+      renderWishlist(allWlItems)
+    }
+
+    function renderWishlist(items) {
+      if (!items.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>Your wishlist is empty</h3><p><a href="/products.html">Browse products</a> to add items</p></div>'; return }
+      el.innerHTML = items.map((w, i) => {
+        const p = w.products
+        if (!p) return ''
+        return `<div class="featured-card" style="animation-delay:${i*0.08}s">
+          <a href="/product-detail.html?slug=${p.slug}" class="featured-image" style="display:block;">
+            <img src="${p.img_url||'/public/product.png'}" alt="${p.name}" loading="lazy">
+          </a>
+          <div class="featured-content">
+            <h3><a href="/product-detail.html?slug=${p.slug}" style="color:var(--text);text-decoration:none;">${p.name}</a></h3>
+            <p>${(p.description||'').substring(0,80)}…</p>
+            <div class="featured-price">₱${(p.price_cents/100).toFixed(2)}</div>
+            <div class="featured-footer">
+              <button onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
+              <button class="wishlist-btn active" onclick="removeFromWishlist('${w.id}','${p.id}',this)" title="Remove from wishlist">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
             </div>
           </div>
-        `
-      })
+        </div>`
+      }).join('')
     }
-    
-    // Remove wishlist item handler
-    window.removeWish = async (id) => {
-      await supa.from('wishlists').delete().eq('id', id)
-      location.reload()
+
+    window.filterWishlist = (q) => {
+      if (!q) { renderWishlist(allWlItems); return }
+      renderWishlist(allWlItems.filter(w => w.products?.name.toLowerCase().includes(q.toLowerCase())))
+    }
+
+    window.removeFromWishlist = async (wlId, productId, btn) => {
+      await supa.from('wishlists').delete().eq('id', wlId)
+      allWlItems = allWlItems.filter(w => w.id !== wlId)
+      const badge = document.getElementById('wishlist-count-badge')
+      badge.textContent = allWlItems.length
+      if (!allWlItems.length) badge.style.display = 'none'
+      renderWishlist(allWlItems)
+      showToast('Removed', 'Item removed from wishlist.', 'info', 2000)
+    }
+
+    window.addToCart = async (productId) => {
+      if (!session) { showToast('Sign in required', 'Please log in to add items.', 'info'); return }
+      const { data: existing } = await supa.from('cart_items').select('*').eq('user_id', session.user.id).eq('product_id', productId).single()
+      if (existing) {
+        await supa.from('cart_items').update({ qty: existing.qty + 1 }).eq('id', existing.id)
+      } else {
+        await supa.from('cart_items').insert({ user_id: session.user.id, product_id: productId, qty: 1 })
+      }
+      showToast('Added to cart!', 'Item added to your cart.', 'success', 2000)
     }
   </script>
-  <script type="module" src="/src/main.js"></script>
-  <script>window.addEventListener("load",function(){setTimeout(function(){var l=document.getElementById("page-loader");if(l)l.classList.add("hidden")},600)})</script>
 </body>
 </html>

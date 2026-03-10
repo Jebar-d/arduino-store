@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>About Us – Arduino Store</title>
+  <link rel="icon" type="image/png" href="/public/logo2.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css"/>
+</head>
+<body>
+  <div id="page-loader"><img src="/public/logo2.png" alt="" class="loader-logo" onerror="this.style.display='none'"><div class="loader-bar-wrap"><div class="loader-bar"></div></div><span class="loader-text">Arduino Store</span></div>
+  <div id="toast-container"></div>
+  <header id="nav"></header>
+
+  <!-- About Hero -->
+  <div class="about-hero">
+    <div class="container">
+      <img src="/public/logo2.png" alt="Arduino Store" style="height:80px;margin-bottom:1.5rem;" onerror="this.style.display='none'">
+      <h1>About Arduino Store</h1>
+      <p>We are a passionate team of makers, engineers, and tech enthusiasts dedicated to making Arduino components accessible to everyone in the Philippines.</p>
+    </div>
+  </div>
+
+  <main class="container">
+
+    <!-- Mission -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:3rem;" class="about-mission-grid">
+      <div class="account-card" style="border-left:3px solid var(--primary);">
+        <h3 style="color:var(--primary);margin-bottom:0.75rem;">🎯 Our Mission</h3>
+        <p style="color:var(--text2);line-height:1.8;">To empower every Filipino maker, student, and engineer with affordable, authentic, and high-quality Arduino components — delivered fast and backed by real technical support.</p>
+      </div>
+      <div class="account-card" style="border-left:3px solid var(--primary);">
+        <h3 style="color:var(--primary);margin-bottom:0.75rem;">👁️ Our Vision</h3>
+        <p style="color:var(--text2);line-height:1.8;">To become the most trusted electronics component store in Southeast Asia, fostering a community of innovative makers who build the future with open-source hardware.</p>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <h2 class="section-title">Meet the Team</h2>
+    <div class="team-grid">
+      <div class="team-card leader">
+        <div class="leader-crown">👑</div>
+        <div class="team-avatar">DA</div>
+        <div class="team-name">Aboy, Den Gebhard S.</div>
+        <div class="team-role">Leader · JS &amp; Git</div>
+        <div class="team-desc">Project lead &amp; full-stack developer. Manages the codebase, git workflow, and all JavaScript logic.</div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">JA</div>
+        <div class="team-name">Asuncion, Justine Aaron</div>
+        <div class="team-role">HTML / CSS</div>
+        <div class="team-desc">Front-end developer responsible for structure and layout of core pages.</div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">AB</div>
+        <div class="team-name">Bonifacio, Angel Ann</div>
+        <div class="team-role">SQL / Database</div>
+        <div class="team-desc">Database architect. Designs and maintains the Supabase schema and RLS policies.</div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">JC</div>
+        <div class="team-name">Cabrillos, John Jasseim</div>
+        <div class="team-role">SQL / Database</div>
+        <div class="team-desc">Co-database developer. Handles queries, data integrity, and backend logic.</div>
+      </div>
+      <div class="team-card">
+        <div class="team-avatar">JR</div>
+        <div class="team-name">Cruz, John Raymond B.</div>
+        <div class="team-role">HTML / CSS</div>
+        <div class="team-desc">UI/UX developer. Crafts beautiful, responsive interfaces and styles.</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;margin:3rem 0;text-align:center;" class="stats-grid">
+      <div class="account-card" style="padding:2rem 1rem;">
+        <div style="font-size:2.2rem;font-weight:900;color:var(--primary);">500+</div>
+        <div style="color:var(--text2);font-size:0.88rem;">Products</div>
+      </div>
+      <div class="account-card" style="padding:2rem 1rem;">
+        <div style="font-size:2.2rem;font-weight:900;color:var(--primary);">2,000+</div>
+        <div style="color:var(--text2);font-size:0.88rem;">Happy Customers</div>
+      </div>
+      <div class="account-card" style="padding:2rem 1rem;">
+        <div style="font-size:2.2rem;font-weight:900;color:var(--primary);">81</div>
+        <div style="color:var(--text2);font-size:0.88rem;">Provinces Served</div>
+      </div>
+      <div class="account-card" style="padding:2rem 1rem;">
+        <div style="font-size:2.2rem;font-weight:900;color:var(--primary);">4.9★</div>
+        <div style="color:var(--text2);font-size:0.88rem;">Average Rating</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-bottom:3rem;">
+      <a href="/contact.html" class="btn-primary" style="display:inline-block;padding:0.9rem 2.5rem;">📬 Get in Touch</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand"><img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'"><p>Your one-stop shop for Arduino components in the Philippines.</p></div>
+      <div class="footer-col"><h4>Shop</h4><a href="/products.html">All Products</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="/about.html">About Us</a><a href="/contact.html">Contact</a><a href="/faq.html">FAQ</a></div>
+      <div class="footer-col"><h4>Legal</h4><a href="/terms.html">Terms</a><a href="/rules.html">Rules</a><a href="/returns.html">Returns</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2025 Arduino Store. Built with ❤️ for makers.</p></div>
+  </footer>
+
+  <style>
+    @media (max-width:768px){.about-mission-grid{grid-template-columns:1fr!important}.stats-grid{grid-template-columns:repeat(2,1fr)!important}.team-grid{grid-template-columns:repeat(2,1fr)!important}}
+    @media (max-width:480px){.stats-grid{grid-template-columns:1fr 1fr!important}}
+  </style>
+  <script type="module" src="/src/main.js"></script>
+  <script>window.addEventListener('load',()=>setTimeout(()=>document.getElementById('page-loader')?.classList.add('hidden'),600))</script>
+</body>
+</html>
