@@ -118,6 +118,85 @@
       .receipt-logo { color: #0071ce !important; }
       .receipt-item-price { color: #0071ce !important; }
       .totals-row.grand .t-val { color: #0071ce !important; }
+
+    /* Tracking simulation styles */
+    #rating-section {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: none;
+    }
+    #rating-section.revealed {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+    .tracking-step {
+      transition: all 0.4s ease;
+    }
+    .tracking-step .t-dot {
+      transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, transform 0.3s ease;
+    }
+    .tracking-step.just-completed .t-dot {
+      animation: stepPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes stepPop {
+      0%   { transform: scale(0.6); }
+      60%  { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+    .tracking-step::before {
+      transition: background 0.6s ease;
+    }
+    .t-progress-bar {
+      position: absolute;
+      left: 11px; top: 26px;
+      width: 2px; height: 0%;
+      background: var(--primary);
+      z-index: 0;
+      transition: height 4.8s linear;
+    }
+    .tracking-step.animating .t-progress-bar {
+      height: calc(100% - 6px);
+    }
+    .sim-timer {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.75rem; color: var(--text2);
+      margin-top: 0.25rem;
+    }
+    .sim-timer-dots span {
+      display: inline-block;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin: 0 1px;
+      animation: simDotBounce 1.2s ease-in-out infinite;
+    }
+    .sim-timer-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .sim-timer-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes simDotBounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+    .tracking-complete-badge {
+      display: none;
+      align-items: center; gap: 0.5rem;
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.3);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      color: var(--success);
+      font-size: 0.85rem; font-weight: 600;
+      margin-top: 1rem;
+      animation: fadeSlideIn 0.5s ease;
+    }
+    .tracking-complete-badge.show { display: flex; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
     }
   </style>
 </head>
@@ -195,10 +274,14 @@
     <div class="order-receipt" id="tracking-section">
       <h3>Order Tracking</h3>
       <div class="tracking-steps" id="tracking-steps"></div>
+      <div class="tracking-complete-badge" id="tracking-complete-badge">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Order delivered! Leave a review below.
+      </div>
     </div>
 
     <!-- Rating -->
-    <div class="order-receipt" id="rating-section">
+    <div class="order-receipt" id="rating-section" style="display:none;opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease;pointer-events:none;">
       <h3>Rate Your Experience</h3>
       <p style="color:var(--text2);font-size:.88rem;">How was your shopping experience?</p>
       <div class="rating-stars" id="rating-stars">
@@ -215,8 +298,8 @@
 
     <div class="order-actions">
       <a href="/products.html" class="btn-outline">Continue Shopping</a>
-      <button class="btn-danger-outline" onclick="requestRefund()">Request Refund</button>
-      <button class="btn-danger-outline" onclick="cancelOrder()">Cancel Order</button>
+      <button class="btn-danger-outline" id="btn-refund" onclick="requestRefund()" style="display:none;opacity:0;transition:opacity 0.4s">Request Refund</button>
+      <button class="btn-danger-outline" id="btn-cancel" onclick="cancelOrder()">Cancel Order</button>
     </div>
   </div>
 
@@ -256,6 +339,9 @@
     const paymentStatus   = urlParams.get('payment')
 
     let order = {}
+    let simStep = 0
+    let simTimer = null
+    let simTotalSteps = 4
 
     /* ── Debug helper (remove after fixing) ── */
     console.log('[order-complete] page loaded, order_id:', new URLSearchParams(location.search).get('order_id'))
@@ -409,27 +495,144 @@
 
       /* Tracking steps — driven by tracking_status from DB */
       const trackingSteps = [
-        { key: 'processing',  label: 'Order Placed',         sub: () => order.created_at ? new Date(order.created_at).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : new Date().toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) },
-        { key: 'processing',  label: 'Processing / To Ship', sub: () => 'Being prepared at our warehouse' },
-        { key: 'shipped',     label: 'Shipped / In Transit', sub: () => '–' },
-        { key: 'out_for_delivery', label: 'Out for Delivery', sub: () => '–' },
-        { key: 'delivered',   label: 'Delivered',            sub: () => order.eta ? `Expected: ${order.eta}` : '3–5 business days' },
+        { key: 'processing',       label: 'Order Placed',         sub: () => order.created_at ? new Date(order.created_at).toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : new Date().toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) },
+        { key: 'processing',       label: 'Processing / To Ship', sub: () => 'Being prepared at our warehouse' },
+        { key: 'shipped',          label: 'Shipped / In Transit', sub: () => '–' },
+        { key: 'out_for_delivery', label: 'Out for Delivery',     sub: () => '–' },
+        { key: 'delivered',        label: 'Delivered',            sub: () => order.eta ? `Expected: ${order.eta}` : '3–5 business days' },
       ]
       const statusOrder = ['processing','shipped','out_for_delivery','delivered']
       const currentStatus = order.tracking_status || 'processing'
       const currentIdx = statusOrder.indexOf(currentStatus)
-      // Map step index to status index (step 0 = placed = always done, step 1 = processing, etc.)
-      const stepStatusIdx = [-1, 0, 1, 2, 3]  // step 0 is always done (order placed)
+      const stepStatusIdx = [-1, 0, 1, 2, 3]
       const checkSvg = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
-      const stepsHtml = trackingSteps.map((step, i) => {
-        const sIdx = stepStatusIdx[i]
-        const isDone   = i === 0 || (sIdx !== -1 && sIdx < currentIdx)
-        const isActive = sIdx !== -1 && sIdx === currentIdx
-        const cls = isDone ? 'done' : isActive ? 'active' : 'pending'
-        const dot = isDone ? `<div class="t-dot">${checkSvg}</div>` : `<div class="t-dot"></div>`
-        return `<div class="tracking-step ${cls}">${dot}<div><div class="t-label">${step.label}</div><div class="t-date">${step.sub()}</div></div></div>`
-      }).join('')
-      document.getElementById('tracking-steps').innerHTML = stepsHtml
+
+      // Build initial HTML — step 0 always done, rest pending
+      function buildStepsHtml(doneUpTo) {
+        return trackingSteps.map((step, i) => {
+          const isDone   = i <= doneUpTo
+          const isActive = i === doneUpTo + 1
+          const cls = isDone ? 'done' : isActive ? 'active' : 'pending'
+          const dot = isDone
+            ? `<div class="t-dot">${checkSvg}</div>`
+            : isActive
+              ? `<div class="t-dot"><div class="sim-timer-dots"><span></span><span></span><span></span></div></div>`
+              : `<div class="t-dot"></div>`
+          const progressBar = (isDone || isActive) && i < trackingSteps.length - 1
+            ? `<div class="t-progress-bar" id="pb-${i}"></div>`
+            : ''
+          const subText = isDone
+            ? (i === 0 ? step.sub() : 'Completed')
+            : isActive
+              ? `<span class="sim-timer">Updating in 5s…</span>`
+              : step.sub()
+          return `<div class="tracking-step ${cls}" id="ts-${i}">${dot}${progressBar}<div><div class="t-label">${step.label}</div><div class="t-date" id="td-${i}">${subText}</div></div></div>`
+        }).join('')
+      }
+
+      document.getElementById('tracking-steps').innerHTML = buildStepsHtml(0)
+
+      // Start progress bar animation on step 0 -> 1 connector
+      setTimeout(() => {
+        const pb = document.getElementById('pb-0')
+        if (pb) pb.classList.add('animating')
+      }, 100)
+
+      // Simulation: advance one step every 5 seconds
+      simStep = 0
+      simTimer = null
+      window.simCancelled = false
+      const totalSteps = simTotalSteps
+
+      function advanceStep() {
+        if (window.simCancelled) return
+        simStep++
+        if (simStep > totalSteps) return
+
+        // Mark previous step done with pop animation
+        const prevEl = document.getElementById(`ts-${simStep - 1}`)
+        if (prevEl && simStep > 1) {
+          prevEl.classList.remove('active')
+          prevEl.classList.add('done', 'just-completed')
+          const dot = prevEl.querySelector('.t-dot')
+          if (dot) dot.innerHTML = checkSvg
+          const td = document.getElementById(`td-${simStep - 1}`)
+          if (td) td.innerHTML = 'Completed'
+          setTimeout(() => prevEl.classList.remove('just-completed'), 600)
+        }
+
+        if (simStep < trackingSteps.length) {
+          // Activate next step
+          const nextEl = document.getElementById(`ts-${simStep}`)
+          if (nextEl) {
+            nextEl.classList.remove('pending')
+            nextEl.classList.add('active')
+            const dot = nextEl.querySelector('.t-dot')
+            if (dot) dot.innerHTML = `<div class="sim-timer-dots"><span></span><span></span><span></span></div>`
+            const td = document.getElementById(`td-${simStep}`)
+            if (td) td.innerHTML = simStep < totalSteps ? `<span class="sim-timer">Updating in 5s…</span>` : `<span class="sim-timer">Finalizing…</span>`
+          }
+          // Animate connector bar
+          setTimeout(() => {
+            const pb = document.getElementById(`pb-${simStep}`)
+            if (pb) pb.classList.add('animating')
+          }, 100)
+        }
+
+        if (simStep === totalSteps) {
+          // Last step — complete it, then reveal review
+          const lastEl = document.getElementById(`ts-${totalSteps}`)
+          if (lastEl) {
+            lastEl.classList.remove('pending', 'active')
+            lastEl.classList.add('active')
+            const dot = lastEl.querySelector('.t-dot')
+            if (dot) dot.innerHTML = `<div class="sim-timer-dots"><span></span><span></span><span></span></div>`
+          }
+
+          setTimeout(() => {
+            const lastEl2 = document.getElementById(`ts-${totalSteps}`)
+            if (lastEl2) {
+              lastEl2.classList.remove('active')
+              lastEl2.classList.add('done', 'just-completed')
+              const dot = lastEl2.querySelector('.t-dot')
+              if (dot) dot.innerHTML = checkSvg
+              const td = document.getElementById(`td-${totalSteps}`)
+              if (td) td.innerHTML = order.eta ? `Expected: ${order.eta}` : '3–5 business days'
+            }
+
+            // Show complete badge
+            const badge = document.getElementById('tracking-complete-badge')
+            if (badge) badge.classList.add('show')
+
+            // Swap buttons: hide cancel, show refund
+            const btnCancel = document.getElementById('btn-cancel')
+            const btnRefund = document.getElementById('btn-refund')
+            if (btnCancel) { btnCancel.style.transition = 'opacity 0.4s'; btnCancel.style.opacity = '0'; setTimeout(() => btnCancel.style.display = 'none', 400) }
+            if (btnRefund) { btnRefund.style.display = 'inline-flex'; setTimeout(() => { btnRefund.style.opacity = '1' }, 50) }
+
+            // Reveal review section
+            setTimeout(() => {
+              const ratingEl = document.getElementById('rating-section')
+              if (ratingEl) {
+                ratingEl.style.display = 'block'
+                ratingEl.style.pointerEvents = 'all'
+                ratingEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                setTimeout(() => {
+                  ratingEl.style.opacity = '1'
+                  ratingEl.style.transform = 'translateY(0)'
+                }, 100)
+              }
+            }, 800)
+          }, 2000)
+          return
+        }
+
+        // Schedule next advance
+        simTimer = setTimeout(advanceStep, 5000)
+      }
+
+      // Kick off simulation after 5 seconds
+      simTimer = setTimeout(advanceStep, 5000)
     }
 
     /* ── Email receipt via Formspree ── */
@@ -542,11 +745,31 @@ For support: support@arduinostore.ph
       if (!selectedRating) { showToast('Select a rating','Click a star first.','error'); return }
       if (!session) { showToast('Sign in required','Please log in to leave a review.','info'); return }
       const comment = document.getElementById('rating-comment')?.value.trim()
+      let anyError = null
+
       if (order.products?.length) {
         for (const p of order.products) {
-          if (p.id) try { await supa.from('reviews').upsert({ product_id:p.id, user_id:session.user.id, rating:selectedRating, comment:comment||null },{onConflict:'product_id,user_id'}) } catch(e) {}
+          if (!p.id) continue
+          const { error } = await supa.from('reviews').insert(
+            {
+              product_id: p.id,
+              user_id:    session.user.id,
+              rating:     selectedRating,
+              comment:    comment || null
+            }
+          )
+          if (error) {
+            console.error('[review] upsert error:', error)
+            anyError = error
+          }
         }
       }
+
+      if (anyError) {
+        showToast('Error saving review', anyError.message || 'Please try again.', 'error')
+        return
+      }
+
       showToast('Thank you!','Your review has been submitted.','success')
       document.getElementById('rating-section').innerHTML = '<p style="color:var(--success);font-weight:600;text-align:center;padding:1rem;">Review submitted! Thank you ★</p>'
     }
@@ -577,7 +800,37 @@ For support: support@arduinostore.ph
       if (error) { showToast('Error','Could not cancel. Please contact support.','error'); return }
       try { await supa.from('notifications').insert({user_id:session.user.id,title:'Order Cancelled',message:`Order #${order.id.substring(0,8).toUpperCase()} has been cancelled.`,type:'system',is_read:false}) } catch(e) {}
       showToast('Order Cancelled','Your order has been cancelled.','info',6000)
+      window.simCancelled = true
+      clearTimeout(simTimer)
+      simStep = simTotalSteps + 1
+      // Stop all CSS progress bar animations
+      document.querySelectorAll('.t-progress-bar').forEach(pb => {
+        pb.style.transition = 'none'
+        pb.style.height = '0%'
+      })
+
+      // Update tracking UI to show cancelled
+      document.querySelectorAll('.tracking-step').forEach(el => {
+        if (el.classList.contains('active')) {
+          el.classList.remove('active')
+          el.classList.add('pending')
+          const dot = el.querySelector('.t-dot')
+          if (dot) dot.innerHTML = '✕'
+        }
+        // Stop bouncing dots on any pending step labels
+        const td = el.querySelector('.t-date')
+        if (td && td.querySelector('.sim-timer')) td.innerHTML = '—'
+      })
+      // Show cancelled banner on tracking section
+      const trackingSection = document.getElementById('tracking-section')
+      if (trackingSection) {
+        const banner = document.createElement('div')
+        banner.style.cssText = 'margin-top:1rem;padding:0.7rem 1rem;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:8px;color:#ff4444;font-weight:600;font-size:0.85rem;display:flex;align-items:center;gap:0.5rem;'
+        banner.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Order has been cancelled.'
+        trackingSection.appendChild(banner)
+      }
       document.querySelectorAll('.btn-danger-outline').forEach(b=>b.disabled=true)
+      document.getElementById('btn-cancel').style.opacity = '0.4'
     }
   </script>
 </body>

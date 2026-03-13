@@ -1,220 +1,1029 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin - Add Product</title>
+  <meta charset="UTF-8"/>
+  <title>Admin — ARduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
-  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/style.css"/>
+  <style>
+    :root {
+      --adm-bg: #0d0d0f;
+      --adm-surface: #141417;
+      --adm-card: #1a1a1e;
+      --adm-border: rgba(119,207,207,0.12);
+      --adm-primary: #77CFCF;
+      --adm-accent: #5fa9a9;
+      --adm-danger: #ff4d4d;
+      --adm-warning: #f5a623;
+      --adm-success: #2ecc71;
+      --adm-text: #f0f0f0;
+      --adm-text2: #8a8a9a;
+      --adm-sidebar: 240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--adm-bg); color: var(--adm-text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+    #nav, footer, .site-footer { display: none !important; }
+
+    .adm-layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .adm-sidebar { width: var(--adm-sidebar); background: var(--adm-surface); border-right: 1px solid var(--adm-border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+    .adm-logo { padding: 1.25rem 1.25rem; border-bottom: 1px solid var(--adm-border); display: flex; align-items: center; gap: 0.75rem; }
+    .adm-logo img { height: 1.75rem; }
+    .adm-logo-text { font-size: 0.7rem; color: var(--adm-primary); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .adm-nav { flex: 1; padding: 0.75rem 0; overflow-y: auto; }
+    .adm-nav-section { padding: 0.75rem 1.25rem 0.25rem; font-size: 0.62rem; color: var(--adm-text2); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+    .adm-nav a { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 1.25rem; color: var(--adm-text2); text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 2px solid transparent; transition: all 0.15s; }
+    .adm-nav a:hover { color: var(--adm-text); background: rgba(119,207,207,0.05); }
+    .adm-nav a.active { color: var(--adm-primary); border-left-color: var(--adm-primary); background: rgba(119,207,207,0.08); font-weight: 600; }
+    .adm-sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--adm-border); font-size: 0.75rem; color: var(--adm-text2); }
+    .adm-sidebar-footer a { color: var(--adm-primary); text-decoration: none; font-size: 0.75rem; }
+
+    /* Main */
+    .adm-main { margin-left: var(--adm-sidebar); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .adm-topbar { background: var(--adm-surface); border-bottom: 1px solid var(--adm-border); padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .adm-breadcrumb { font-size: 0.82rem; color: var(--adm-text2); }
+    .adm-breadcrumb span { color: var(--adm-text); font-weight: 600; }
+    .adm-user-badge { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: var(--adm-text2); }
+    .adm-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--adm-primary), var(--adm-accent)); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: #000; }
+    .adm-content { padding: 1.75rem 2rem; flex: 1; }
+
+    /* Stats */
+    .adm-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+    .adm-stat { background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 10px; padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: 1rem; }
+    .adm-stat-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ic-teal { background: rgba(119,207,207,0.12); color: var(--adm-primary); }
+    .ic-green { background: rgba(46,204,113,0.12); color: var(--adm-success); }
+    .ic-orange { background: rgba(245,166,35,0.12); color: var(--adm-warning); }
+    .ic-red { background: rgba(255,77,77,0.12); color: var(--adm-danger); }
+    .adm-stat-val { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .adm-stat-lbl { font-size: 0.75rem; color: var(--adm-text2); margin-top: 0.2rem; }
+
+    /* Page header */
+    .adm-ph { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
+    .adm-ph-title { font-size: 1.35rem; font-weight: 700; }
+    .adm-ph-sub { font-size: 0.82rem; color: var(--adm-text2); margin-top: 0.15rem; }
+
+    /* Toolbar */
+    .adm-toolbar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+    .adm-search { position: relative; flex: 1; min-width: 180px; }
+    .adm-search input { width: 100%; background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 8px; padding: 0.55rem 0.9rem 0.55rem 2.25rem; color: var(--adm-text); font-size: 0.85rem; outline: none; }
+    .adm-search input:focus { border-color: var(--adm-primary); }
+    .adm-search svg { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: var(--adm-text2); pointer-events: none; }
+    .adm-sel { background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 8px; padding: 0.55rem 0.9rem; color: var(--adm-text); font-size: 0.85rem; outline: none; }
+
+    /* Table */
+    .adm-tw { overflow-x: auto; border-radius: 10px; border: 1px solid var(--adm-border); }
+    .adm-t { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .adm-t thead { background: rgba(119,207,207,0.04); }
+    .adm-t th { padding: 0.8rem 1rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--adm-text2); font-weight: 700; border-bottom: 1px solid var(--adm-border); }
+    .adm-t td { padding: 0.8rem 1rem; border-bottom: 1px solid rgba(119,207,207,0.05); vertical-align: middle; }
+    .adm-t tr:last-child td { border-bottom: none; }
+    .adm-t tr:hover td { background: rgba(119,207,207,0.025); }
+    .adm-t img { width: 38px; height: 38px; object-fit: cover; border-radius: 6px; border: 1px solid var(--adm-border); }
+
+    /* Badges */
+    .b { display: inline-block; padding: 0.18rem 0.55rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+    .b-g { background: rgba(46,204,113,0.12); color: #2ecc71; }
+    .b-r { background: rgba(255,77,77,0.12); color: #ff4d4d; }
+    .b-o { background: rgba(245,166,35,0.12); color: #f5a623; }
+    .b-t { background: rgba(119,207,207,0.12); color: #77CFCF; }
+    .b-gray { background: rgba(138,138,154,0.12); color: #8a8a9a; }
+
+    /* Buttons */
+    .adm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.65rem 1.25rem; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .adm-btn-p { background: var(--adm-primary); color: #000; }
+    .adm-btn-p:hover { background: var(--adm-accent); }
+    .adm-btn-o { background: transparent; border: 1px solid var(--adm-border); color: var(--adm-text2); }
+    .adm-btn-o:hover { border-color: var(--adm-primary); color: var(--adm-primary); }
+    .adm-btn-d { background: rgba(255,77,77,0.1); border: 1px solid rgba(255,77,77,0.25); color: #ff4d4d; }
+    .adm-btn-d:hover { background: rgba(255,77,77,0.18); }
+    .adm-btn-s { padding: 0.35rem 0.75rem; font-size: 0.76rem; }
+    .adm-btn-full { width: 100%; }
+
+    /* Modal */
+    .adm-mo { position: fixed; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .adm-mo.open { opacity: 1; pointer-events: all; }
+    .adm-mb { background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 14px; padding: 1.75rem; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; transform: translateY(12px); transition: transform 0.2s; }
+    .adm-mo.open .adm-mb { transform: translateY(0); }
+    .adm-mh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .adm-mt { font-size: 1.05rem; font-weight: 700; }
+    .adm-mx { background: none; border: none; color: var(--adm-text2); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0.2rem; }
+    .adm-mx:hover { color: var(--adm-text); }
+    .adm-mf { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+    /* Form groups */
+    .fg { margin-bottom: 0.9rem; }
+    .fg label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--adm-text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+    .fg input, .fg select, .fg textarea { width: 100%; background: var(--adm-surface); border: 1px solid var(--adm-border); border-radius: 7px; padding: 0.65rem 0.85rem; color: var(--adm-text); font-size: 0.875rem; outline: none; transition: border-color 0.15s; }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--adm-primary); }
+    .fg textarea { resize: vertical; min-height: 75px; }
+    .fg select option { background: var(--adm-surface); }
+    .fg input[type=file] { color: var(--adm-text2); padding: 0.45rem 0.85rem; }
+    .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+
+    /* Toast */
+    .adm-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 9px; padding: 0.8rem 1.1rem; font-size: 0.83rem; font-weight: 500; min-width: 200px; transform: translateY(60px); opacity: 0; transition: all 0.25s; }
+    .adm-toast.show { transform: translateY(0); opacity: 1; }
+    .adm-toast.success { border-left: 3px solid var(--adm-success); }
+    .adm-toast.error { border-left: 3px solid var(--adm-danger); }
+    .adm-toast.info { border-left: 3px solid var(--adm-primary); }
+
+    /* Confirm */
+    .adm-co { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .adm-co.open { opacity: 1; pointer-events: all; }
+    .adm-cb { background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 12px; padding: 1.75rem; max-width: 360px; width: 100%; text-align: center; }
+    .adm-cb h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .adm-cb p { font-size: 0.83rem; color: var(--adm-text2); margin-bottom: 1.25rem; }
+    .adm-ca { display: flex; gap: 0.75rem; justify-content: center; }
+
+    /* Auth gate */
+    .adm-gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .adm-gate-box { background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 14px; padding: 2.25rem; max-width: 400px; width: 100%; text-align: center; }
+    .adm-gate-box img { height: 2.5rem; margin-bottom: 1.25rem; }
+    .adm-gate-box h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .adm-gate-box p { font-size: 0.83rem; color: var(--adm-text2); margin-bottom: 1.25rem; }
+
+    /* Empty / loader */
+    .adm-empty { text-align: center; padding: 3.5rem 2rem; color: var(--adm-text2); font-size: 0.875rem; }
+    .adm-spin { width: 28px; height: 28px; border: 2px solid var(--adm-border); border-top-color: var(--adm-primary); border-radius: 50%; animation: spin 0.6s linear infinite; margin: 2rem auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Quick cards (dashboard) */
+    .adm-qgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .adm-qc { background: var(--adm-card); border: 1px solid var(--adm-border); border-radius: 10px; padding: 1.25rem; text-decoration: none; color: var(--adm-text); transition: all 0.15s; display: flex; flex-direction: column; gap: 0.6rem; }
+    .adm-qc:hover { border-color: var(--adm-primary); transform: translateY(-2px); }
+    .adm-qc-icon { font-size: 1.6rem; }
+    .adm-qc h3 { font-size: 0.95rem; font-weight: 600; }
+    .adm-qc p { font-size: 0.78rem; color: var(--adm-text2); line-height: 1.5; }
+    .adm-qc-arr { margin-top: auto; color: var(--adm-primary); font-size: 0.78rem; font-weight: 700; }
+
+    /* User avatar circle */
+    .u-av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,var(--adm-primary),var(--adm-accent)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.72rem; color: #000; flex-shrink: 0; }
+  </style>
 </head>
 <body>
-  <header id="nav"></header>
-  <main class="container" id="admin-panel">
-    <!-- Content injected by JS -->
-  </main>
+<header id="nav"></header>
 
-  <!-- Footer -->
-  <footer class="site-footer">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <img src="/public/logo1.png" alt="Arduino Store" style="height:2rem;" onerror="this.style.display='none'">
-        <p>Your one-stop shop for Arduino components, boards, and maker supplies in the Philippines.</p>
+<!-- Auth Gate -->
+<div class="adm-gate" id="auth-gate">
+  <div class="adm-gate-box">
+    <img src="/public/logo2.png" onerror="this.style.display='none'">
+    <h2>Admin Access</h2>
+    <p id="auth-msg">Verifying session…</p>
+    <div id="auth-loading"><div class="adm-spin"></div></div>
+    <div id="auth-form" style="display:none">
+      <div class="fg" style="text-align:left"><label>Admin Code</label>
+        <input type="password" id="code-input" placeholder="Enter secret code" onkeydown="if(event.key==='Enter')verifyCode()" style="background:var(--adm-surface);border:1px solid var(--adm-border);border-radius:7px;padding:0.65rem 0.85rem;color:var(--adm-text);font-size:0.875rem;outline:none;width:100%;transition:border-color 0.15s">
       </div>
-      <div class="footer-col">
-        <h4>Shop</h4>
-        <a href="/products.html">All Products</a>
-        <a href="/products.html">Boards</a>
-        <a href="/products.html">Sensors</a>
-        <a href="/products.html">Starter Kits</a>
+      <button class="adm-btn adm-btn-p adm-btn-full" onclick="verifyCode()" style="margin-top:0.25rem">Continue →</button>
+      <p id="code-err" style="color:var(--adm-danger);font-size:0.8rem;margin-top:0.5rem"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Shell (hidden until auth) -->
+<div id="adm-shell" style="display:none">
+  <div class="adm-layout">
+    <aside class="adm-sidebar">
+      <div class="adm-logo">
+        <img src="/public/logo2.png" onerror="this.style.display='none'">
+        <span class="adm-logo-text">Admin Panel</span>
       </div>
-      <div class="footer-col">
-        <h4>Account</h4>
-        <a href="/login.html">Login</a>
-        <a href="/signup.html">Sign Up</a>
-        <a href="/account.html">My Account</a>
-        <a href="/wishlist.html">Wishlist</a>
+      <nav class="adm-nav" id="adm-nav">
+        <div class="adm-nav-section">Overview</div>
+        <a href="#" class="active" data-tab="dashboard" onclick="nav(this)">⊞ &nbsp;Dashboard</a>
+        <div class="adm-nav-section">Catalog</div>
+        <a href="#" data-tab="products" onclick="nav(this)">📦 &nbsp;Products</a>
+        <a href="#" data-tab="categories" onclick="nav(this)">🏷️ &nbsp;Categories</a>
+        <a href="#" data-tab="promos" onclick="nav(this)">🎟️ &nbsp;Promos</a>
+        <div class="adm-nav-section">Manage</div>
+        <a href="#" data-tab="orders" onclick="nav(this)">🚚 &nbsp;Orders</a>
+        <a href="#" data-tab="users" onclick="nav(this)">👥 &nbsp;Users</a>
+        <a href="#" data-tab="refunds" onclick="nav(this)">↩️ &nbsp;Refunds</a>
+      </nav>
+      <div class="adm-sidebar-footer">
+        <div style="margin-bottom:0.3rem;font-size:0.72rem">Signed in as</div>
+        <div id="sb-email" style="color:var(--adm-text);font-weight:600;font-size:0.8rem;word-break:break-all"></div>
+        <a href="/index.html" style="display:inline-block;margin-top:0.75rem">← Back to Store</a>
       </div>
-      <div class="footer-col">
-        <h4>Support</h4>
-        <a href="#">FAQ</a>
-        <a href="#">Shipping Info</a>
-        <a href="#">Returns Policy</a>
-        <a href="#">Contact Us</a>
+    </aside>
+    <div class="adm-main">
+      <div class="adm-topbar">
+        <div class="adm-breadcrumb">Admin / <span id="topbar-lbl">Dashboard</span></div>
+        <div class="adm-user-badge">
+          <div class="adm-avatar" id="top-avatar">A</div>
+          <span id="top-name">Admin</span>
+        </div>
+      </div>
+      <div class="adm-content" id="adm-content">
+        <div class="adm-spin"></div>
       </div>
     </div>
-    <div class="footer-bottom">
-      <p>&copy; 2025 Arduino Store. Built with love for makers in the Philippines.</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="adm-toast" id="adm-toast"></div>
+
+<!-- Confirm -->
+<div class="adm-co" id="adm-confirm">
+  <div class="adm-cb">
+    <h3 id="cfm-title">Are you sure?</h3>
+    <p id="cfm-msg">This cannot be undone.</p>
+    <div class="adm-ca">
+      <button class="adm-btn adm-btn-o" onclick="cfmClose()">Cancel</button>
+      <button class="adm-btn adm-btn-d" id="cfm-ok">Confirm</button>
     </div>
-  </footer>
-  
-  <script type="module" src="/src/main.js"></script>
-  <script type="module">
-    import { onAuthChange, supaAuth } from '/src/auth.js'
-    import { insertProduct } from '/src/products.js'
-    import { uploadFile } from '/src/upload.js'
-    
-    // CHANGE THESE TO YOUR ACTUAL LOGIN EMAIL AND A SECRET PASSWORD
-    const ADMIN_EMAIL = 'akosibbear38@gmail.com'  // ← your real email
-    const ADMIN_CODE = 'laginard54'                 // ← your secret code
-    
-    onAuthChange(async (user) => {
-      const panel = document.getElementById('admin-panel')
-      
-      // Not logged in at all
-      if (!user) {
-        panel.innerHTML = `
-          <h1>Admin Access</h1>
-          <p>Please <a href="/login.html">login</a> first.</p>
-        `
-        return
-      }
-      
-      // Logged in but not admin email
-      if (user.email !== ADMIN_EMAIL) {
-        panel.innerHTML = `
-          <h1>Access Denied</h1>
-          <p>You are not authorized.</p>
-          <p>Logged in as: ${user.email}</p>
-          <a href="/">Go Home</a>
-        `
-        return
-      }
-      
-      // Right email, now check admin code
-      panel.innerHTML = `
-        <h1>Admin Verification</h1>
-        <p>Welcome ${user.email}. Enter admin code:</p>
-        <input type="password" id="code" placeholder="Admin Code"><br>
-        <button onclick="verifyCode()" class="btn-primary">Continue</button>
-        <p id="error" style="color:#f44;"></p>
-      `
-      
-      window.verifyCode = () => {
-        if (document.getElementById('code').value === ADMIN_CODE) {
-          showAdminForm()
-        } else {
-          document.getElementById('error').textContent = 'Wrong code'
-        }
-      }
-    })
-    
-    function showAdminForm() {
-      document.getElementById('admin-panel').innerHTML = `
-        <h1>Add New Product ✓</h1>
-        <form id="form" style="max-width:600px;">
-          <label>Product Name</label>
-          <input name="name" id="prod-name" placeholder="e.g., Arduino UNO R3" required><br>
-          
-          <label>URL Slug <small style="color:#888;">(auto-generated)</small></label>
-          <input name="slug" id="prod-slug" placeholder="arduino-uno-r3" required><br>
-          
-          <label>Price (PHP)</label>
-          <input name="price" type="number" step="0.01" placeholder="1500.00" required><br>
-          
-          <label>Stock Quantity</label>
-          <input name="stock" type="number" placeholder="25" required><br>
-          
-          <label>Category</label>
-          <select id="category" name="category" required>
-            <option value="">Select Category</option>
-          </select><br>
-          
-          <label>Description</label>
-          <textarea name="desc" placeholder="Brief product description..." rows="3"></textarea><br>
-          
-          <label>Product Image <small style="color:#888;">(JPG, PNG, WEBP)</small></label>
-          <input id="img" type="file" accept="image/*" required><br>
-          
-          <label>3D Model <small style="color:#888;">(optional: .stl, .obj, .glb)</small></label>
-          <input id="model" type="file" accept=".stl,.obj,.glb,.gltf"><br>
-          
-          <button type="submit" class="btn-primary">Add Product</button>
-        </form>
-        <div id="result"></div>
-      `
-      
-      // AUTO-GENERATE SLUG when name loses focus
-      document.getElementById('prod-name').addEventListener('blur', (e) => {
-        const name = e.target.value.trim()
-        if (!name) return
-        
-        const slug = name
-          .toLowerCase()                           // lowercase
-          .replace(/[^a-z0-9]+/g, '-')             // spaces/special → dashes
-          .replace(/^-|-$/g, '')                   // remove edge dashes
-          .substring(0, 50)                        // max 50 chars
-        
-        document.getElementById('prod-slug').value = slug
-      })
-      
-      // Allow manual editing of slug
-      document.getElementById('prod-slug').addEventListener('focus', () => {
-        // User wants to edit manually, leave it alone
-      })
-      
-      // Load categories
-      supaAuth.from('categories').select('*').then(({data}) => {
-        const sel = document.getElementById('category')
-        data?.forEach(c => sel.insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.name}</option>`))
-      })
-      
-      // Handle submit
-    document.getElementById('form').onsubmit = async (e) => {
-  e.preventDefault()
-  const result = document.getElementById('result')
-  result.innerHTML = '<p>Uploading...</p>'
-  
-  try {
-    const imgFile = document.getElementById('img').files[0]
-    const modelFile = document.getElementById('model').files[0]
-    
-    console.log('Image file:', imgFile?.name, imgFile?.size)
-    console.log('Model file:', modelFile?.name, modelFile?.size)
-    
-    // Upload image
-    result.innerHTML = '<p>Uploading image...</p>'
-    const imgRes = await uploadFile(imgFile)
-    console.log('Image upload result:', imgRes)
-    
-    if (imgRes.error) {
-      throw new Error('Image failed: ' + imgRes.error.message)
-    }
-    
-    // Upload model (optional)
-    let modelUrl = null
-    if (modelFile) {
-      result.innerHTML = '<p>Uploading 3D model...</p>'
-      const modelRes = await uploadFile(modelFile)
-      console.log('Model upload result:', modelRes)
-      if (modelRes.error) {
-        throw new Error('Model failed: ' + modelRes.error.message)
-      }
-      modelUrl = modelRes.url
-    }
-    
-    result.innerHTML = '<p>Saving product...</p>'
-    const { data, error } = await insertProduct({
-      name: e.target.name.value,
-      slug: e.target.slug.value,
-      price_cents: Math.round(parseFloat(e.target.price.value) * 100),
-      stock: parseInt(e.target.stock.value),
-      description: e.target.desc.value,
-      category_id: e.target.category.value,
-      img_url: imgRes.url,
-      model_url: modelUrl
-    })
-    
-    if (error) throw error
-    
-    console.log('Product saved:', data)
-    result.innerHTML = `<p style="color:#0f0;">✅ Added! <a href="/product-detail.html?slug=${data.slug}">View</a></p>`
-    e.target.reset()
-    
-  } catch (err) {
-    console.error('Full error:', err)
-    result.innerHTML = `<p style="color:#f44;">Error: ${err.message}</p>`
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+<script type="module">
+  import { onAuthChange, supaAuth } from '/src/auth.js'
+  import { listProducts, insertProduct, updateProduct, deleteProduct } from '/src/products.js'
+  import { uploadFile } from '/src/upload.js'
+  import { createClient } from '@supabase/supabase-js'
+
+  const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+  const ADMIN_CODE  = 'laginard54'
+  const supa = createClient(
+    'https://tyhocgrjwxswxzzfvwct.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE'
+  )
+
+  let currentUser = null
+  let allProducts = [], allCats = [], allOrders = [], allUsers = []
+
+  // ── Toast ──
+  window.toast = (msg, type='info') => {
+    const el = document.getElementById('adm-toast')
+    el.textContent = msg; el.className = `adm-toast ${type} show`
+    setTimeout(() => el.classList.remove('show'), 3000)
   }
-}
+
+  // ── Confirm ──
+  let cfmResolve = null
+  window.cfmClose = () => { document.getElementById('adm-confirm').classList.remove('open'); cfmResolve?.(false) }
+  document.getElementById('cfm-ok').onclick = () => { document.getElementById('adm-confirm').classList.remove('open'); cfmResolve?.(true) }
+  function confirm2(title, msg, okTxt='Confirm') {
+    document.getElementById('cfm-title').textContent = title
+    document.getElementById('cfm-msg').textContent = msg
+    document.getElementById('cfm-ok').textContent = okTxt
+    document.getElementById('adm-confirm').classList.add('open')
+    return new Promise(r => cfmResolve = r)
+  }
+
+  // ── Auth ──
+  onAuthChange(async (user) => {
+    document.getElementById('auth-loading').style.display = 'none'
+    if (!user) {
+      document.getElementById('auth-msg').textContent = 'Please log in first.'
+      document.getElementById('auth-msg').insertAdjacentHTML('afterend', `<a href="/login.html" class="adm-btn adm-btn-p" style="display:inline-flex;margin-top:1rem">Go to Login</a>`)
+      return
     }
-  </script>
+    if (user.email !== ADMIN_EMAIL) {
+      document.getElementById('auth-msg').textContent = `Access denied for ${user.email}`
+      return
+    }
+    currentUser = user
+    document.getElementById('auth-msg').textContent = `Welcome, ${user.email.split('@')[0]}. Enter code:`
+    document.getElementById('auth-form').style.display = 'block'
+    document.getElementById('code-input').focus()
+  })
+
+  window.verifyCode = () => {
+    if (document.getElementById('code-input').value === ADMIN_CODE) {
+      document.getElementById('auth-gate').style.display = 'none'
+      document.getElementById('adm-shell').style.display = 'block'
+      document.getElementById('sb-email').textContent = currentUser.email
+      document.getElementById('top-avatar').textContent = currentUser.email[0].toUpperCase()
+      document.getElementById('top-name').textContent = currentUser.email.split('@')[0]
+      loadTab('dashboard')
+    } else {
+      document.getElementById('code-err').textContent = 'Incorrect code.'
+    }
+  }
+
+  // ── Nav ──
+  window.nav = (el) => {
+    document.querySelectorAll('.adm-nav a').forEach(a => a.classList.remove('active'))
+    el.classList.add('active')
+    const tab = el.dataset.tab
+    document.getElementById('topbar-lbl').textContent = el.textContent.trim().replace(/^.\s*/,'')
+    loadTab(tab)
+    return false
+  }
+
+  window.goTab = (tab) => {
+    const link = document.querySelector(`.adm-nav a[data-tab="${tab}"]`)
+    if (link) nav(link)
+  }
+
+  function loadTab(tab) {
+    const c = document.getElementById('adm-content')
+    c.innerHTML = '<div class="adm-spin"></div>'
+    const fns = { dashboard: renderDashboard, products: renderProducts, categories: renderCategories, promos: renderPromos, orders: renderOrders, users: renderUsers, refunds: renderRefunds }
+    fns[tab]?.()
+  }
+
+  // ════════════════════════════════════
+  // DASHBOARD
+  // ════════════════════════════════════
+  async function renderDashboard() {
+    const [
+      {count: pc}, {count: oc}, {count: uc}, {count: prc},
+      {data: rev}, {data: recent}
+    ] = await Promise.all([
+      supa.from('products').select('*',{count:'exact',head:true}),
+      supa.from('orders').select('*',{count:'exact',head:true}),
+      supa.from('profiles').select('*',{count:'exact',head:true}),
+      supa.from('promos').select('*',{count:'exact',head:true}),
+      supa.from('orders').select('total_cents').eq('status','paid'),
+      supa.from('orders').select('id,total_cents,status,created_at,payment_method,profiles(email)').order('created_at',{ascending:false}).limit(6)
+    ])
+    const revenue = rev?.reduce((s,o)=>s+o.total_cents,0)||0
+
+    set(`
+      <div class="adm-ph"><div><div class="adm-ph-title">Dashboard</div><div class="adm-ph-sub">Welcome back, ${currentUser.email.split('@')[0]}!</div></div></div>
+      <div class="adm-stats-grid">
+        <div class="adm-stat"><div class="adm-stat-icon ic-teal">${ico('box')}</div><div><div class="adm-stat-val">${pc||0}</div><div class="adm-stat-lbl">Products</div></div></div>
+        <div class="adm-stat"><div class="adm-stat-icon ic-green">${ico('cart')}</div><div><div class="adm-stat-val">${oc||0}</div><div class="adm-stat-lbl">Orders</div></div></div>
+        <div class="adm-stat"><div class="adm-stat-icon ic-orange">${ico('users')}</div><div><div class="adm-stat-val">${uc||0}</div><div class="adm-stat-lbl">Users</div></div></div>
+        <div class="adm-stat"><div class="adm-stat-icon ic-teal">${ico('pct')}</div><div><div class="adm-stat-val">${prc||0}</div><div class="adm-stat-lbl">Promos</div></div></div>
+        <div class="adm-stat"><div class="adm-stat-icon ic-green">${ico('peso')}</div><div><div class="adm-stat-val">₱${(revenue/100).toLocaleString('en-PH',{maximumFractionDigits:0})}</div><div class="adm-stat-lbl">Revenue (Paid)</div></div></div>
+      </div>
+      <div style="font-size:0.95rem;font-weight:700;margin-bottom:0.75rem">Recent Orders</div>
+      <div class="adm-tw" style="margin-bottom:1.75rem">
+        <table class="adm-t"><thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${recent?.map(o=>`<tr>
+          <td style="font-family:monospace;font-size:0.76rem">#${o.id.substring(0,8).toUpperCase()}</td>
+          <td style="color:var(--adm-text2);font-size:0.82rem">${o.profiles?.email||'—'}</td>
+          <td>₱${(o.total_cents/100).toFixed(2)}</td>
+          <td>${sbadge(o.status)}</td>
+          <td style="color:var(--adm-text2);font-size:0.78rem">${new Date(o.created_at).toLocaleDateString('en-PH')}</td>
+        </tr>`).join('')||empty('No orders yet')}</tbody></table>
+      </div>
+      <div style="font-size:0.95rem;font-weight:700;margin-bottom:0.75rem">Quick Access</div>
+      <div class="adm-qgrid">
+        <a class="adm-qc" href="#" onclick="goTab('products');return false"><div class="adm-qc-icon">📦</div><h3>Products</h3><p>Add, edit, remove items from your catalog.</p><div class="adm-qc-arr">Open →</div></a>
+        <a class="adm-qc" href="#" onclick="goTab('promos');return false"><div class="adm-qc-icon">🎟️</div><h3>Promos</h3><p>Create discount codes and send notifications.</p><div class="adm-qc-arr">Open →</div></a>
+        <a class="adm-qc" href="#" onclick="goTab('orders');return false"><div class="adm-qc-icon">🚚</div><h3>Orders</h3><p>View and update order statuses.</p><div class="adm-qc-arr">Open →</div></a>
+        <a class="adm-qc" href="#" onclick="goTab('users');return false"><div class="adm-qc-icon">👥</div><h3>Users</h3><p>Manage user profiles and send messages.</p><div class="adm-qc-arr">Open →</div></a>
+      </div>
+    `)
+  }
+
+  // ════════════════════════════════════
+  // PRODUCTS
+  // ════════════════════════════════════
+  async function renderProducts() {
+    const [{ data: prods }, { data: cats }] = await Promise.all([
+      supa.from('products').select('*, categories(name)').order('created_at',{ascending:false}),
+      supa.from('categories').select('*').order('name')
+    ])
+    allProducts = prods||[]; allCats = cats||[]
+
+    set(`
+      <div class="adm-ph">
+        <div><div class="adm-ph-title">Products</div><div class="adm-ph-sub">${allProducts.length} items in catalog</div></div>
+        <button class="adm-btn adm-btn-p" onclick="openProdModal()">+ Add Product</button>
+      </div>
+      <div class="adm-toolbar">
+        <div class="adm-search">
+          ${searchIco()}
+          <input type="text" placeholder="Search products…" id="ps-q" oninput="fprod()">
+        </div>
+        <select class="adm-sel" id="ps-cat" onchange="fprod()">
+          <option value="">All Categories</option>
+          ${allCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="adm-tw" id="prod-tw">${prodTable(allProducts)}</div>
+      ${prodModal()}
+    `)
+  }
+
+  function prodTable(prods) {
+    if (!prods.length) return `<div class="adm-empty">No products found</div>`
+    return `<table class="adm-t"><thead><tr><th>Img</th><th>Name</th><th>Price</th><th>Stock</th><th>Category</th><th>SKU</th><th>Actions</th></tr></thead>
+    <tbody>${prods.map(p=>`<tr>
+      <td><img src="${p.img_url||'/public/product.png'}" onerror="this.src='/public/product.png'"></td>
+      <td><div style="font-weight:600">${p.name}</div><div style="font-size:0.73rem;color:var(--adm-text2)">${p.slug}</div></td>
+      <td>₱${(p.price_cents/100).toFixed(2)}</td>
+      <td>${p.stock<=5?`<span class="b b-r">${p.stock}</span>`:`<span class="b b-g">${p.stock}</span>`}</td>
+      <td><span class="b b-t">${p.categories?.name||'—'}</span></td>
+      <td style="font-size:0.75rem;color:var(--adm-text2)">${p.sku||'—'}</td>
+      <td><div style="display:flex;gap:0.4rem">
+        <button class="adm-btn adm-btn-o adm-btn-s" onclick='openProdModal(${esc(p)})'>Edit</button>
+        <button class="adm-btn adm-btn-d adm-btn-s" onclick="delProd('${p.id}','${p.name.replace(/'/g,"\\'")}')">Del</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`
+  }
+
+  window.fprod = () => {
+    const q = document.getElementById('ps-q')?.value.toLowerCase()||''
+    const cat = document.getElementById('ps-cat')?.value||''
+    let f = allProducts
+    if (q) f = f.filter(p=>p.name.toLowerCase().includes(q)||p.slug.includes(q)||p.sku?.includes(q))
+    if (cat) f = f.filter(p=>p.category_id===cat)
+    document.getElementById('prod-tw').innerHTML = prodTable(f)
+  }
+
+  function prodModal() {
+    return `<div class="adm-mo" id="prod-mo">
+      <div class="adm-mb">
+        <div class="adm-mh"><div class="adm-mt" id="pm-title">Add Product</div><button class="adm-mx" onclick="closeMo('prod-mo')">✕</button></div>
+        <input type="hidden" id="pm-id">
+        <div class="fr">
+          <div class="fg"><label>Name *</label><input id="pm-name" placeholder="Arduino UNO R3" oninput="aSlug()"></div>
+          <div class="fg"><label>Slug *</label><input id="pm-slug" placeholder="arduino-uno-r3"></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>Price (PHP) *</label><input id="pm-price" type="number" step="0.01" placeholder="1500.00"></div>
+          <div class="fg"><label>Stock *</label><input id="pm-stock" type="number" placeholder="25"></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>Category</label><select id="pm-cat"><option value="">Select…</option>${allCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+          <div class="fg"><label>SKU</label><input id="pm-sku" placeholder="ARD-001"></div>
+        </div>
+        <div class="fg"><label>Description</label><textarea id="pm-desc" placeholder="Product description…"></textarea></div>
+        <div class="fg"><label>Image <small style="text-transform:none;font-weight:400;color:var(--adm-text2)">(JPG/PNG/WEBP)</small></label><input id="pm-img" type="file" accept="image/*"></div>
+        <div id="pm-status" style="font-size:0.8rem;color:var(--adm-text2);margin-bottom:0.5rem"></div>
+        <div class="adm-mf">
+          <button class="adm-btn adm-btn-o" onclick="closeMo('prod-mo')">Cancel</button>
+          <button class="adm-btn adm-btn-p" onclick="saveProd()">Save Product</button>
+        </div>
+      </div>
+    </div>`
+  }
+
+  window.openProdModal = (jsonStr) => {
+    const p = jsonStr ? JSON.parse(jsonStr) : null
+    document.getElementById('pm-title').textContent = p ? 'Edit Product' : 'Add Product'
+    document.getElementById('pm-id').value = p?.id||''
+    document.getElementById('pm-name').value = p?.name||''
+    document.getElementById('pm-slug').value = p?.slug||''
+    document.getElementById('pm-price').value = p ? (p.price_cents/100).toFixed(2) : ''
+    document.getElementById('pm-stock').value = p?.stock??''
+    document.getElementById('pm-cat').value = p?.category_id||''
+    document.getElementById('pm-sku').value = p?.sku||''
+    document.getElementById('pm-desc').value = p?.description||''
+    document.getElementById('pm-status').textContent = ''
+    document.getElementById('prod-mo').classList.add('open')
+  }
+
+  window.aSlug = () => {
+    const v = document.getElementById('pm-name').value
+    document.getElementById('pm-slug').value = v.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').substring(0,50)
+  }
+
+  window.saveProd = async () => {
+    const id = document.getElementById('pm-id').value
+    const name = document.getElementById('pm-name').value.trim()
+    const slug = document.getElementById('pm-slug').value.trim()
+    const price = parseFloat(document.getElementById('pm-price').value)
+    const stock = parseInt(document.getElementById('pm-stock').value)
+    if (!name||!slug||!price||isNaN(stock)) { toast('Fill all required fields','error'); return }
+
+    const st = document.getElementById('pm-status')
+    const imgFile = document.getElementById('pm-img').files[0]
+    let img_url = id ? allProducts.find(p=>p.id===id)?.img_url : null
+
+    if (imgFile) {
+      st.textContent = 'Uploading image…'
+      const r = await uploadFile(imgFile)
+      if (r.error) { toast('Image upload failed','error'); st.textContent=''; return }
+      img_url = r.url
+    }
+
+    st.textContent = 'Saving…'
+    const payload = { name, slug, price_cents: Math.round(price*100), stock, category_id: document.getElementById('pm-cat').value||null, sku: document.getElementById('pm-sku').value.trim()||null, description: document.getElementById('pm-desc').value.trim()||null, img_url }
+
+    const { error } = id ? await updateProduct(id, payload) : await insertProduct(payload)
+    if (error) { toast(error.message,'error'); st.textContent=''; return }
+    toast(id ? 'Product updated!' : 'Product added!','success')
+    closeMo('prod-mo')
+    renderProducts()
+  }
+
+  window.delProd = async (id, name) => {
+    if (!await confirm2('Delete Product', `Delete "${name}"? Cannot be undone.`, 'Delete')) return
+    const { error } = await deleteProduct(id)
+    if (error) { toast(error.message,'error'); return }
+    toast('Product deleted','info')
+    renderProducts()
+  }
+
+  // ════════════════════════════════════
+  // CATEGORIES
+  // ════════════════════════════════════
+  async function renderCategories() {
+    const { data: cats } = await supa.from('categories').select('*').order('name')
+    set(`
+      <div class="adm-ph">
+        <div><div class="adm-ph-title">Categories</div><div class="adm-ph-sub">${cats?.length||0} categories</div></div>
+        <button class="adm-btn adm-btn-p" onclick="openCatMo()">+ Add Category</button>
+      </div>
+      <div class="adm-tw">
+        <table class="adm-t"><thead><tr><th>Name</th><th>Slug</th><th>Actions</th></tr></thead>
+        <tbody>${cats?.map(c=>`<tr>
+          <td style="font-weight:600">${c.name}</td>
+          <td style="color:var(--adm-text2);font-size:0.8rem">${c.slug||'—'}</td>
+          <td><div style="display:flex;gap:0.4rem">
+            <button class="adm-btn adm-btn-o adm-btn-s" onclick='openCatMo(${esc(c)})'>Edit</button>
+            <button class="adm-btn adm-btn-d adm-btn-s" onclick="delCat('${c.id}','${c.name.replace(/'/g,"\\'")}')">Del</button>
+          </div></td>
+        </tr>`).join('')||empty('No categories')}</tbody></table>
+      </div>
+      <div class="adm-mo" id="cat-mo">
+        <div class="adm-mb" style="max-width:400px">
+          <div class="adm-mh"><div class="adm-mt" id="cm-title">Add Category</div><button class="adm-mx" onclick="closeMo('cat-mo')">✕</button></div>
+          <input type="hidden" id="cm-id">
+          <div class="fg"><label>Name *</label><input id="cm-name" placeholder="Sensors"></div>
+          <div class="fg"><label>Slug</label><input id="cm-slug" placeholder="sensors (auto if blank)"></div>
+          <div class="adm-mf">
+            <button class="adm-btn adm-btn-o" onclick="closeMo('cat-mo')">Cancel</button>
+            <button class="adm-btn adm-btn-p" onclick="saveCat()">Save</button>
+          </div>
+        </div>
+      </div>
+    `)
+  }
+
+  window.openCatMo = (jsonStr) => {
+    const c = jsonStr ? JSON.parse(jsonStr) : null
+    document.getElementById('cm-title').textContent = c ? 'Edit Category' : 'Add Category'
+    document.getElementById('cm-id').value = c?.id||''
+    document.getElementById('cm-name').value = c?.name||''
+    document.getElementById('cm-slug').value = c?.slug||''
+    document.getElementById('cat-mo').classList.add('open')
+  }
+
+  window.saveCat = async () => {
+    const id = document.getElementById('cm-id').value
+    const name = document.getElementById('cm-name').value.trim()
+    const slug = document.getElementById('cm-slug').value.trim() || name.toLowerCase().replace(/\s+/g,'-')
+    if (!name) { toast('Name required','error'); return }
+    const { error } = id ? await supa.from('categories').update({name,slug}).eq('id',id) : await supa.from('categories').insert({name,slug})
+    if (error) { toast(error.message,'error'); return }
+    toast(id ? 'Category updated' : 'Category added','success')
+    closeMo('cat-mo'); renderCategories()
+  }
+
+  window.delCat = async (id, name) => {
+    if (!await confirm2('Delete Category', `Delete "${name}"?`, 'Delete')) return
+    const { error } = await supa.from('categories').delete().eq('id',id)
+    if (error) { toast(error.message,'error'); return }
+    toast('Deleted','info'); renderCategories()
+  }
+
+  // ════════════════════════════════════
+  // PROMOS
+  // ════════════════════════════════════
+  async function renderPromos() {
+    const { data: promos } = await supa.from('promos').select('*').order('valid_until',{ascending:false})
+    const now = new Date()
+    set(`
+      <div class="adm-ph">
+        <div><div class="adm-ph-title">Promo Codes</div><div class="adm-ph-sub">${promos?.length||0} codes</div></div>
+        <div style="display:flex;gap:0.5rem">
+          <button class="adm-btn adm-btn-o" onclick="openNotifMo()">📣 Send Notification</button>
+          <button class="adm-btn adm-btn-p" onclick="openPromoMo()">+ Add Promo</button>
+        </div>
+      </div>
+      <div class="adm-tw">
+        <table class="adm-t"><thead><tr><th>Code</th><th>Discount</th><th>Min Order</th><th>Uses</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${promos?.map(p=>{
+          const exp = new Date(p.valid_until)<now
+          const exh = p.max_uses && p.used_count>=p.max_uses
+          return `<tr>
+            <td style="font-family:monospace;font-weight:700;letter-spacing:0.06em">${p.code}</td>
+            <td>${p.is_free_shipping?`<span class="b b-t">Free Ship</span>`:`<span class="b b-g">${p.discount_percent}% OFF</span>`}</td>
+            <td style="color:var(--adm-text2)">₱${((p.min_order_cents||0)/100).toFixed(0)}</td>
+            <td style="color:var(--adm-text2)">${p.used_count}${p.max_uses?` / ${p.max_uses}`:''}</td>
+            <td style="color:var(--adm-text2);font-size:0.78rem">${new Date(p.valid_until).toLocaleDateString('en-PH')}</td>
+            <td>${!exp&&!exh?`<span class="b b-g">Active</span>`:exp?`<span class="b b-r">Expired</span>`:`<span class="b b-o">Exhausted</span>`}</td>
+            <td><div style="display:flex;gap:0.4rem">
+              <button class="adm-btn adm-btn-o adm-btn-s" onclick='openPromoMo(${esc(p)})'>Edit</button>
+              <button class="adm-btn adm-btn-d adm-btn-s" onclick="delPromo('${p.id}','${p.code}')">Del</button>
+            </div></td>
+          </tr>`
+        }).join('')||empty('No promo codes yet')}</tbody></table>
+      </div>
+      <div class="adm-mo" id="promo-mo">
+        <div class="adm-mb">
+          <div class="adm-mh"><div class="adm-mt" id="pmo-title">Add Promo</div><button class="adm-mx" onclick="closeMo('promo-mo')">✕</button></div>
+          <input type="hidden" id="pmo-id">
+          <div class="fr">
+            <div class="fg"><label>Code *</label><input id="pmo-code" placeholder="SAVE20" oninput="this.value=this.value.toUpperCase()"></div>
+            <div class="fg"><label>Discount %</label><input id="pmo-disc" type="number" min="0" max="100" placeholder="20"></div>
+          </div>
+          <div class="fr">
+            <div class="fg"><label>Min Order (PHP)</label><input id="pmo-min" type="number" placeholder="0"></div>
+            <div class="fg"><label>Max Uses (blank=∞)</label><input id="pmo-max" type="number" placeholder="100"></div>
+          </div>
+          <div class="fr">
+            <div class="fg"><label>Valid From</label><input id="pmo-from" type="datetime-local"></div>
+            <div class="fg"><label>Valid Until *</label><input id="pmo-until" type="datetime-local"></div>
+          </div>
+          <div class="fg"><label>Description</label><input id="pmo-desc" placeholder="Weekend sale promo"></div>
+          <div class="fg"><label style="display:flex;align-items:center;gap:0.5rem;text-transform:none;font-size:0.85rem;font-weight:500;flex-direction:row"><input type="checkbox" id="pmo-ship" style="width:auto"> Free Shipping promo</label></div>
+          <div class="adm-mf">
+            <button class="adm-btn adm-btn-o" onclick="closeMo('promo-mo')">Cancel</button>
+            <button class="adm-btn adm-btn-p" onclick="savePromo()">Save Promo</button>
+          </div>
+        </div>
+      </div>
+      <div class="adm-mo" id="notif-mo">
+        <div class="adm-mb" style="max-width:460px">
+          <div class="adm-mh"><div class="adm-mt">Send Promo Notification</div><button class="adm-mx" onclick="closeMo('notif-mo')">✕</button></div>
+          <div class="fg"><label>Title *</label><input id="nmo-title" placeholder="🎉 Weekend Sale!"></div>
+          <div class="fg"><label>Message *</label><textarea id="nmo-msg" placeholder="Get 20% off all Arduino boards this weekend!"></textarea></div>
+          <div class="fg"><label>Target Users</label>
+            <select id="nmo-target">
+              <option value="all">All Users</option>
+              <option value="wishlist">Users with Wishlist Items</option>
+              <option value="cart">Users with Cart Items</option>
+            </select>
+          </div>
+          <div id="nmo-status" style="font-size:0.8rem;color:var(--adm-text2);min-height:1.2rem"></div>
+          <div class="adm-mf">
+            <button class="adm-btn adm-btn-o" onclick="closeMo('notif-mo')">Cancel</button>
+            <button class="adm-btn adm-btn-p" onclick="sendNotif()">Send Notification</button>
+          </div>
+        </div>
+      </div>
+    `)
+  }
+
+  window.openPromoMo = (jsonStr) => {
+    const p = jsonStr ? JSON.parse(jsonStr) : null
+    document.getElementById('pmo-title').textContent = p ? 'Edit Promo' : 'Add Promo'
+    document.getElementById('pmo-id').value = p?.id||''
+    document.getElementById('pmo-code').value = p?.code||''
+    document.getElementById('pmo-disc').value = p?.discount_percent||''
+    document.getElementById('pmo-min').value = p ? p.min_order_cents/100 : ''
+    document.getElementById('pmo-max').value = p?.max_uses||''
+    document.getElementById('pmo-from').value = p?.valid_from?.substring(0,16)||''
+    document.getElementById('pmo-until').value = p?.valid_until?.substring(0,16)||''
+    document.getElementById('pmo-desc').value = p?.description||''
+    document.getElementById('pmo-ship').checked = p?.is_free_shipping||false
+    document.getElementById('promo-mo').classList.add('open')
+  }
+
+  window.savePromo = async () => {
+    const id    = document.getElementById('pmo-id').value
+    const code  = document.getElementById('pmo-code').value.trim().toUpperCase()
+    const disc  = parseInt(document.getElementById('pmo-disc').value)||0
+    const min   = parseFloat(document.getElementById('pmo-min').value)||0
+    const maxU  = document.getElementById('pmo-max').value
+    const until = document.getElementById('pmo-until').value
+    const from  = document.getElementById('pmo-from').value
+    const desc  = document.getElementById('pmo-desc').value.trim()
+    const ship  = document.getElementById('pmo-ship').checked
+    if (!code||!until) { toast('Code and expiry required','error'); return }
+    const payload = { code, discount_percent: disc, min_order_cents: Math.round(min*100), valid_from: from||new Date().toISOString(), valid_until: new Date(until).toISOString(), description: desc||null, is_free_shipping: ship, max_uses: maxU ? parseInt(maxU) : null }
+    const { error } = id ? await supa.from('promos').update(payload).eq('id',id) : await supa.from('promos').insert(payload)
+    if (error) { toast(error.message,'error'); return }
+    toast(id ? 'Promo updated!' : 'Promo created!','success')
+    closeMo('promo-mo'); renderPromos()
+  }
+
+  window.delPromo = async (id, code) => {
+    if (!await confirm2('Delete Promo', `Delete code "${code}"?`, 'Delete')) return
+    await supa.from('promos').delete().eq('id',id)
+    toast('Deleted','info'); renderPromos()
+  }
+
+  window.openNotifMo = () => document.getElementById('notif-mo').classList.add('open')
+
+  window.sendNotif = async () => {
+    const title  = document.getElementById('nmo-title').value.trim()
+    const msg    = document.getElementById('nmo-msg').value.trim()
+    const target = document.getElementById('nmo-target').value
+    const st     = document.getElementById('nmo-status')
+    if (!title||!msg) { toast('Title and message required','error'); return }
+    st.textContent = 'Fetching users…'
+    let ids = []
+    if (target==='all') { const {data}=await supa.from('profiles').select('id'); ids=data?.map(p=>p.id)||[] }
+    else if (target==='wishlist') { const {data}=await supa.from('wishlists').select('user_id'); ids=[...new Set(data?.map(w=>w.user_id)||[])] }
+    else { const {data}=await supa.from('cart_items').select('user_id'); ids=[...new Set(data?.map(c=>c.user_id)||[])] }
+    st.textContent = `Sending to ${ids.length} users…`
+    if (ids.length) {
+      const { error } = await supa.from('notifications').insert(ids.map(uid=>({ user_id:uid, title, message:msg, type:'promo', is_read:false })))
+      if (error) { toast(error.message,'error'); st.textContent=''; return }
+    }
+    toast(`Sent to ${ids.length} users!`,'success')
+    st.textContent = ''; closeMo('notif-mo')
+  }
+
+  // ════════════════════════════════════
+  // ORDERS
+  // ════════════════════════════════════
+  async function renderOrders() {
+    const { data: orders } = await supa.from('orders').select('*, profiles(email,first_name,last_name)').order('created_at',{ascending:false})
+    allOrders = orders||[]
+    set(`
+      <div class="adm-ph">
+        <div><div class="adm-ph-title">Orders</div><div class="adm-ph-sub">${allOrders.length} total orders</div></div>
+      </div>
+      <div class="adm-toolbar">
+        <div class="adm-search">${searchIco()}<input type="text" placeholder="Search by ID or email…" id="os-q" oninput="ford()"></div>
+        <select class="adm-sel" id="os-status" onchange="ford()">
+          <option value="">All Statuses</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="refunded">Refunded</option>
+        </select>
+        <select class="adm-sel" id="os-pay" onchange="ford()">
+          <option value="">All Payments</option>
+          <option value="cod">COD</option>
+          <option value="xendit">Xendit</option>
+          <option value="gcash">GCash</option>
+        </select>
+      </div>
+      <div class="adm-tw" id="orders-tw">${orderTable(allOrders)}</div>
+      <div class="adm-mo" id="order-mo">
+        <div class="adm-mb">
+          <div class="adm-mh"><div class="adm-mt">Update Order</div><button class="adm-mx" onclick="closeMo('order-mo')">✕</button></div>
+          <input type="hidden" id="om-id">
+          <div style="background:var(--adm-surface);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:var(--adm-text2)" id="om-info"></div>
+          <div class="fr">
+            <div class="fg"><label>Order Status</label>
+              <select id="om-status">
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+            <div class="fg"><label>Tracking Status</label>
+              <select id="om-tracking">
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="in_transit">In Transit</option>
+                <option value="out_for_delivery">Out for Delivery</option>
+                <option value="delivered">Delivered</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label>Internal Notes</label><textarea id="om-notes" placeholder="Add notes visible only to admins…"></textarea></div>
+          <div class="adm-mf">
+            <button class="adm-btn adm-btn-o" onclick="closeMo('order-mo')">Cancel</button>
+            <button class="adm-btn adm-btn-p" onclick="saveOrder()">Update Order</button>
+          </div>
+        </div>
+      </div>
+    `)
+  }
+
+  function orderTable(orders) {
+    if (!orders.length) return `<div class="adm-empty">No orders found</div>`
+    return `<table class="adm-t"><thead><tr><th>Order ID</th><th>Customer</th><th>Amount</th><th>Payment</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+    <tbody>${orders.map(o=>`<tr>
+      <td style="font-family:monospace;font-size:0.76rem">#${o.id.substring(0,8).toUpperCase()}</td>
+      <td><div style="font-weight:500">${o.profiles?.first_name?`${o.profiles.first_name} ${o.profiles.last_name||''}`:'—'}</div><div style="font-size:0.73rem;color:var(--adm-text2)">${o.profiles?.email||'—'}</div></td>
+      <td>₱${(o.total_cents/100).toFixed(2)}</td>
+      <td><span class="b b-gray">${o.payment_method||'cod'}</span></td>
+      <td>${sbadge(o.status)}</td>
+      <td style="color:var(--adm-text2);font-size:0.78rem">${new Date(o.created_at).toLocaleDateString('en-PH')}</td>
+      <td><button class="adm-btn adm-btn-o adm-btn-s" onclick='openOrderMo(${esc(o)})'>Edit</button></td>
+    </tr>`).join('')}</tbody></table>`
+  }
+
+  window.ford = () => {
+    const q = document.getElementById('os-q')?.value.toLowerCase()||''
+    const s = document.getElementById('os-status')?.value||''
+    const p = document.getElementById('os-pay')?.value||''
+    let f = allOrders
+    if (q) f = f.filter(o=>o.id.includes(q)||(o.profiles?.email||'').toLowerCase().includes(q))
+    if (s) f = f.filter(o=>o.status===s)
+    if (p) f = f.filter(o=>o.payment_method===p)
+    document.getElementById('orders-tw').innerHTML = orderTable(f)
+  }
+
+  window.openOrderMo = (jsonStr) => {
+    const o = JSON.parse(jsonStr)
+    document.getElementById('om-id').value = o.id
+    document.getElementById('om-info').innerHTML = `<strong>#${o.id.substring(0,8).toUpperCase()}</strong> &nbsp;·&nbsp; ${o.profiles?.email||'Unknown'} &nbsp;·&nbsp; ₱${(o.total_cents/100).toFixed(2)} &nbsp;·&nbsp; ${o.payment_method||'cod'}`
+    document.getElementById('om-status').value = o.status||'pending'
+    document.getElementById('om-tracking').value = o.tracking_status||'processing'
+    document.getElementById('om-notes').value = o.notes||''
+    document.getElementById('order-mo').classList.add('open')
+  }
+
+  window.saveOrder = async () => {
+    const id = document.getElementById('om-id').value
+    const { error } = await supa.from('orders').update({
+      status: document.getElementById('om-status').value,
+      tracking_status: document.getElementById('om-tracking').value,
+      notes: document.getElementById('om-notes').value.trim()||null
+    }).eq('id',id)
+    if (error) { toast(error.message,'error'); return }
+    toast('Order updated!','success')
+    closeMo('order-mo'); renderOrders()
+  }
+
+  // ════════════════════════════════════
+  // USERS
+  // ════════════════════════════════════
+  async function renderUsers() {
+    const { data: users } = await supa.from('profiles').select('*').order('created_at',{ascending:false})
+    allUsers = users||[]
+    set(`
+      <div class="adm-ph">
+        <div><div class="adm-ph-title">User Management</div><div class="adm-ph-sub">${allUsers.length} registered users</div></div>
+      </div>
+      <div class="adm-toolbar">
+        <div class="adm-search">${searchIco()}<input type="text" placeholder="Search by name or email…" id="us-q" oninput="fuser()"></div>
+        <select class="adm-sel" id="us-terms" onchange="fuser()">
+          <option value="">All Users</option>
+          <option value="yes">Terms Accepted</option>
+          <option value="no">Terms Not Accepted</option>
+        </select>
+      </div>
+      <div class="adm-tw" id="users-tw">${usersTable(allUsers)}</div>
+      <div class="adm-mo" id="user-mo">
+        <div class="adm-mb">
+          <div class="adm-mh"><div class="adm-mt">Edit User Profile</div><button class="adm-mx" onclick="closeMo('user-mo')">✕</button></div>
+          <input type="hidden" id="um-id">
+          <div class="fr">
+            <div class="fg"><label>First Name</label><input id="um-first" placeholder="Juan"></div>
+            <div class="fg"><label>Last Name</label><input id="um-last" placeholder="Dela Cruz"></div>
+          </div>
+          <div class="fr">
+            <div class="fg"><label>Username</label><input id="um-user" placeholder="juandc"></div>
+            <div class="fg"><label>Email (read-only)</label><input id="um-email" disabled style="opacity:0.45"></div>
+          </div>
+          <div class="fg"><label>Contact Number</label><input id="um-contact" placeholder="+63 912 345 6789"></div>
+          <div class="fg"><label>Address</label><textarea id="um-addr" placeholder="Street, City, Province"></textarea></div>
+          <div class="fg"><label style="display:flex;align-items:center;gap:0.5rem;text-transform:none;font-size:0.85rem;font-weight:500;flex-direction:row"><input type="checkbox" id="um-terms" style="width:auto"> Terms Accepted</label></div>
+          <div style="margin-bottom:1rem;padding-top:0.25rem">
+            <button class="adm-btn adm-btn-o adm-btn-s" onclick="openUserNotifMo()">📣 Send Notification to User</button>
+          </div>
+          <div class="adm-mf">
+            <button class="adm-btn adm-btn-o" onclick="closeMo('user-mo')">Cancel</button>
+            <button class="adm-btn adm-btn-p" onclick="saveUser()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+      <div class="adm-mo" id="user-notif-mo">
+        <div class="adm-mb" style="max-width:420px">
+          <div class="adm-mh"><div class="adm-mt">Send Notification</div><button class="adm-mx" onclick="closeMo('user-notif-mo')">✕</button></div>
+          <div id="un-target-info" style="font-size:0.82rem;color:var(--adm-text2);margin-bottom:0.75rem"></div>
+          <div class="fg"><label>Title *</label><input id="un-title" placeholder="Update from ARduino Store"></div>
+          <div class="fg"><label>Message *</label><textarea id="un-msg" placeholder="Your message here…"></textarea></div>
+          <div class="adm-mf">
+            <button class="adm-btn adm-btn-o" onclick="closeMo('user-notif-mo')">Cancel</button>
+            <button class="adm-btn adm-btn-p" onclick="sendUserNotif()">Send</button>
+          </div>
+        </div>
+      </div>
+    `)
+  }
+
+  function usersTable(users) {
+    if (!users.length) return `<div class="adm-empty">No users found</div>`
+    return `<table class="adm-t"><thead><tr><th>User</th><th>Email</th><th>Contact</th><th>Joined</th><th>Terms</th><th>Actions</th></tr></thead>
+    <tbody>${users.map(u=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:0.65rem">
+        <div class="u-av">${(u.first_name||u.email||'?')[0].toUpperCase()}</div>
+        <div><div style="font-weight:600">${u.first_name?`${u.first_name} ${u.last_name||''}`:u.username||'—'}</div><div style="font-size:0.73rem;color:var(--adm-text2)">${u.username?`@${u.username}`:''}</div></div>
+      </div></td>
+      <td style="color:var(--adm-text2);font-size:0.8rem">${u.email||'—'}</td>
+      <td style="color:var(--adm-text2);font-size:0.8rem">${u.contact_number||'—'}</td>
+      <td style="color:var(--adm-text2);font-size:0.78rem">${u.created_at?new Date(u.created_at).toLocaleDateString('en-PH'):'—'}</td>
+      <td>${u.terms_accepted?`<span class="b b-g">✓ Yes</span>`:`<span class="b b-gray">No</span>`}</td>
+      <td><div style="display:flex;gap:0.4rem">
+        <button class="adm-btn adm-btn-o adm-btn-s" onclick='openUserMo(${esc(u)})'>Edit</button>
+        <button class="adm-btn adm-btn-d adm-btn-s" onclick="removeUser('${u.id}','${(u.email||'').replace(/'/g,"\\'")}')">Remove</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`
+  }
+
+  window.fuser = () => {
+    const q = document.getElementById('us-q')?.value.toLowerCase()||''
+    const t = document.getElementById('us-terms')?.value||''
+    let f = allUsers
+    if (q) f = f.filter(u=>(u.email||'').toLowerCase().includes(q)||(u.first_name||'').toLowerCase().includes(q)||(u.last_name||'').toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q))
+    if (t==='yes') f = f.filter(u=>u.terms_accepted)
+    else if (t==='no') f = f.filter(u=>!u.terms_accepted)
+    document.getElementById('users-tw').innerHTML = usersTable(f)
+  }
+
+  window.openUserMo = (jsonStr) => {
+    const u = JSON.parse(jsonStr)
+    document.getElementById('um-id').value = u.id
+    document.getElementById('um-first').value = u.first_name||''
+    document.getElementById('um-last').value = u.last_name||''
+    document.getElementById('um-user').value = u.username||''
+    document.getElementById('um-email').value = u.email||''
+    document.getElementById('um-contact').value = u.contact_number||''
+    document.getElementById('um-addr').value = u.address||''
+    document.getElementById('um-terms').checked = u.terms_accepted||false
+    document.getElementById('user-mo').classList.add('open')
+  }
+
+  window.saveUser = async () => {
+    const id = document.getElementById('um-id').value
+    const { error } = await supa.from('profiles').update({
+      first_name: document.getElementById('um-first').value.trim()||null,
+      last_name:  document.getElementById('um-last').value.trim()||null,
+      username:   document.getElementById('um-user').value.trim()||null,
+      contact_number: document.getElementById('um-contact').value.trim()||null,
+      address:    document.getElementById('um-addr').value.trim()||null,
+      terms_accepted: document.getElementById('um-terms').checked
+    }).eq('id',id)
+    if (error) { toast(error.message,'error'); return }
+    toast('User updated!','success')
+    closeMo('user-mo'); renderUsers()
+  }
+
+  window.openUserNotifMo = () => {
+    const email = document.getElementById('um-email').value
+    document.getElementById('un-target-info').textContent = `Sending to: ${email}`
+    document.getElementById('user-notif-mo').classList.add('open')
+  }
+
+  window.sendUserNotif = async () => {
+    const userId = document.getElementById('um-id').value
+    const title  = document.getElementById('un-title').value.trim()
+    const msg    = document.getElementById('un-msg').value.trim()
+    if (!title||!msg) { toast('Fill in title and message','error'); return }
+    const { error } = await supa.from('notifications').insert({ user_id:userId, title, message:msg, type:'system', is_read:false })
+    if (error) { toast(error.message,'error'); return }
+    toast('Notification sent!','success')
+    closeMo('user-notif-mo')
+  }
+
+  window.removeUser = async (id, email) => {
+    if (!await confirm2('Remove User Profile', `Remove profile data for "${email}"? Only deletes profile data, not auth account.`, 'Remove')) return
+    const { error } = await supa.from('profiles').delete().eq('id',id)
+    if (error) { toast(error.message,'error'); return }
+    toast('Profile removed','info'); renderUsers()
+  }
+
+  // ════════════════════════════════════
+  // REFUNDS
+  // ════════════════════════════════════
+  async function renderRefunds() {
+    const { data: refunds } = await supa.from('refund_requests').select('*, profiles(email,first_name,last_name)').order('created_at',{ascending:false})
+    set(`
+      <div class="adm-ph">
+        <div><div class="adm-ph-title">Refund Requests</div><div class="adm-ph-sub">${refunds?.length||0} requests</div></div>
+      </div>
+      <div class="adm-tw">
+        <table class="adm-t"><thead><tr><th>ID</th><th>Customer</th><th>Order</th><th>Reason</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>${refunds?.map(r=>`<tr>
+          <td style="font-family:monospace;font-size:0.76rem">#${r.id.substring(0,8).toUpperCase()}</td>
+          <td><div style="font-weight:500">${r.profiles?.first_name||'—'} ${r.profiles?.last_name||''}</div><div style="font-size:0.73rem;color:var(--adm-text2)">${r.profiles?.email||'—'}</div></td>
+          <td style="font-family:monospace;font-size:0.76rem">#${(r.order_id||'').substring(0,8).toUpperCase()}</td>
+          <td style="max-width:180px;color:var(--adm-text2);font-size:0.8rem">${r.reason||'—'}</td>
+          <td>${r.status==='approved'?`<span class="b b-g">Approved</span>`:r.status==='rejected'?`<span class="b b-r">Rejected</span>`:`<span class="b b-o">Pending</span>`}</td>
+          <td style="color:var(--adm-text2);font-size:0.78rem">${new Date(r.created_at).toLocaleDateString('en-PH')}</td>
+          <td><div style="display:flex;gap:0.4rem">
+            <button class="adm-btn adm-btn-s" style="background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:#2ecc71" onclick="doRefund('${r.id}','approved')">Approve</button>
+            <button class="adm-btn adm-btn-d adm-btn-s" onclick="doRefund('${r.id}','rejected')">Reject</button>
+          </div></td>
+        </tr>`).join('')||empty('No refund requests')}</tbody></table>
+      </div>
+    `)
+  }
+
+  window.doRefund = async (id, status) => {
+    if (!await confirm2(`${status==='approved'?'Approve':'Reject'} Refund`, `Mark this refund as ${status}?`, status==='approved'?'Approve':'Reject')) return
+    const { error } = await supa.from('refund_requests').update({status}).eq('id',id)
+    if (error) { toast(error.message,'error'); return }
+    toast(`Refund ${status}!`, status==='approved'?'success':'info')
+    renderRefunds()
+  }
+
+  // ── Helpers ──
+  function set(html) { document.getElementById('adm-content').innerHTML = html }
+  window.closeMo = (id) => document.getElementById(id).classList.remove('open')
+  function esc(obj) { return JSON.stringify(JSON.stringify(obj)) }
+  function empty(msg) { return `<tr><td colspan="20" style="text-align:center;padding:2.5rem;color:var(--adm-text2)">${msg}</td></tr>` }
+  function searchIco() { return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>` }
+  function sbadge(s) {
+    const m = { paid:'b-g', pending:'b-o', cancelled:'b-r', refunded:'b-t', shipped:'b-t', delivered:'b-g' }
+    return `<span class="b ${m[s]||'b-gray'}">${s||'?'}</span>`
+  }
+  function ico(n) {
+    const m = {
+      box: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+      cart: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>`,
+      users: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
+      pct: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>`,
+      peso: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="13" x2="21" y2="13"/><path d="M8 21V5a2 2 0 012-2h4a2 2 0 010 4H8"/></svg>`
+    }
+    return m[n]||''
+  }
+</script>
 </body>
 </html>
