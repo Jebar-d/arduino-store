@@ -109,19 +109,47 @@ function injectSidebar(user,isAdmin,displayName,initials,currentPath){
       ${navItem('/about.html','about','About')}
       ${navItem('/faq.html','faq','FAQ')}
       ${navItem('/terms.html','terms','Terms')}
-      ${isAdmin?`<div class="s-divider"></div><div class="s-section-label">Admin</div>
-        ${navItem('/admin.html','add','Add Product')}
-        ${navItem('/admin-manage.html','manage','Manage')}
-        ${navItem('/admin-promo.html','promo','Promos')}`:''}
+      ${isAdmin?`<div class="s-divider"></div>
+        ${navItem('/admin.html','manage','Admin Dashboard')}`:''}
     </nav>
     ${user?`<div class="sidebar-footer"><button class="s-logout-btn" id="sidebar-logout">${ic('logout',18)}<span class="s-label">Sign Out</span></button></div>`:''}`
 
   document.body.appendChild(overlay)
   document.body.appendChild(sb)
 
-  document.getElementById('sidebar-logout')?.addEventListener('click',async()=>{
-    await supaAuth.auth.signOut(); location.reload()
+  // Logout handler with error handling
+  document.getElementById('sidebar-logout')?.addEventListener('click',async(e)=>{
+    e.preventDefault()
+    try {
+      await supaAuth.auth.signOut()
+      // Clear any cached data
+      localStorage.clear()
+      sessionStorage.clear()
+      // Redirect to home
+      window.location.href = '/'
+    } catch (err) {
+      console.error('Logout error:', err)
+      // Even if there's an error, clear cache and redirect
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.href = '/'
+    }
   })
+}
+
+// Global logout function for access from anywhere
+window.logout = async () => {
+  try {
+    await supaAuth.auth.signOut()
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.href = '/'
+  } catch (err) {
+    console.error('Logout error:', err)
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.href = '/'
+  }
 }
 
 window.closeSidebar=function(){

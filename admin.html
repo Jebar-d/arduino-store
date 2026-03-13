@@ -21,13 +21,13 @@
       --adm-sidebar: 240px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--adm-bg); color: var(--adm-text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
-    #nav, footer, .site-footer { display: none !important; }
+    body { background: var(--adm-bg); color: var(--adm-text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; overflow-x: hidden; }
+    #nav, footer, .site-footer, header#nav, .navbar, .sidebar, .sidebar-overlay { display: none !important; }
 
-    .adm-layout { display: flex; min-height: 100vh; }
+    .adm-layout { display: flex; min-height: 100vh; width: 100%; }
 
     /* Sidebar */
-    .adm-sidebar { width: var(--adm-sidebar); background: var(--adm-surface); border-right: 1px solid var(--adm-border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+    .adm-sidebar { width: var(--adm-sidebar); background: var(--adm-surface); border-right: 1px solid var(--adm-border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 1000; height: 100vh; overflow-y: auto; }
     .adm-logo { padding: 1.25rem 1.25rem; border-bottom: 1px solid var(--adm-border); display: flex; align-items: center; gap: 0.75rem; }
     .adm-logo img { height: 1.75rem; }
     .adm-logo-text { font-size: 0.7rem; color: var(--adm-primary); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -41,7 +41,7 @@
 
     /* Main */
     .adm-main { margin-left: var(--adm-sidebar); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-    .adm-topbar { background: var(--adm-surface); border-bottom: 1px solid var(--adm-border); padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .adm-topbar { background: var(--adm-surface); border-bottom: 1px solid var(--adm-border); padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 99; }
     .adm-breadcrumb { font-size: 0.82rem; color: var(--adm-text2); }
     .adm-breadcrumb span { color: var(--adm-text); font-weight: 600; }
     .adm-user-badge { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: var(--adm-text2); }
@@ -340,9 +340,20 @@
       supa.from('profiles').select('*',{count:'exact',head:true}),
       supa.from('promos').select('*',{count:'exact',head:true}),
       supa.from('orders').select('total_cents').eq('status','paid'),
-      supa.from('orders').select('id,total_cents,status,created_at,payment_method,profiles(email)').order('created_at',{ascending:false}).limit(6)
+      supa.from('orders').select('id,total_cents,status,created_at,payment_method,user_id').order('created_at',{ascending:false}).limit(6)
     ])
     const revenue = rev?.reduce((s,o)=>s+o.total_cents,0)||0
+    
+    // Fetch profiles for recent orders
+    if (recent?.length) {
+      const userIds = [...new Set(recent.map(o=>o.user_id).filter(Boolean))]
+      if (userIds.length) {
+        const { data: profiles } = await supa.from('profiles').select('id,email').in('id', userIds)
+        const profileMap = {}
+        profiles?.forEach(p=>profileMap[p.id]=p)
+        recent.forEach(o=>o.profiles=profileMap[o.user_id]||{})
+      }
+    }
 
     set(`
       <div class="adm-ph"><div><div class="adm-ph-title">Dashboard</div><div class="adm-ph-sub">Welcome back, ${currentUser.email.split('@')[0]}!</div></div></div>
@@ -722,7 +733,17 @@
   // ORDERS
   // ════════════════════════════════════
   async function renderOrders() {
-    const { data: orders } = await supa.from('orders').select('*, profiles(email,first_name,last_name)').order('created_at',{ascending:false})
+    const { data: orders } = await supa.from('orders').select('*').order('created_at',{ascending:false})
+    // Fetch user profiles for the orders
+    if (orders?.length) {
+      const userIds = [...new Set(orders.map(o=>o.user_id).filter(Boolean))]
+      if (userIds.length) {
+        const { data: profiles } = await supa.from('profiles').select('id,email,first_name,last_name').in('id', userIds)
+        const profileMap = {}
+        profiles?.forEach(p=>profileMap[p.id]=p)
+        orders.forEach(o=>o.profiles=profileMap[o.user_id]||{})
+      }
+    }
     allOrders = orders||[]
     set(`
       <div class="adm-ph">
@@ -973,7 +994,17 @@
   // REFUNDS
   // ════════════════════════════════════
   async function renderRefunds() {
-    const { data: refunds } = await supa.from('refund_requests').select('*, profiles(email,first_name,last_name)').order('created_at',{ascending:false})
+    const { data: refunds } = await supa.from('refund_requests').select('*').order('created_at',{ascending:false})
+    // Fetch user profiles for the refunds
+    if (refunds?.length) {
+      const userIds = [...new Set(refunds.map(r=>r.user_id).filter(Boolean))]
+      if (userIds.length) {
+        const { data: profiles } = await supa.from('profiles').select('id,email,first_name,last_name').in('id', userIds)
+        const profileMap = {}
+        profiles?.forEach(p=>profileMap[p.id]=p)
+        refunds.forEach(r=>r.profiles=profileMap[r.user_id]||{})
+      }
+    }
     set(`
       <div class="adm-ph">
         <div><div class="adm-ph-title">Refund Requests</div><div class="adm-ph-sub">${refunds?.length||0} requests</div></div>
