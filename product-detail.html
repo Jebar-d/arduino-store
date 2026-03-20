@@ -2,6 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    // Admin guard — hide page immediately, redirect admin to admin panel
+    document.documentElement.style.visibility = 'hidden'
+  </script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const _gc = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    try {
+      const { data } = await _gc.auth.getSession()
+      const user = data.session?.user
+      if (user) {
+        const { data: prof } = await _gc.from('profiles').select('is_admin, email').eq('id', user.id).single()
+        const isAdmin = prof?.is_admin === true || user.email === ADMIN_EMAIL
+        if (isAdmin) { location.replace('/admin.html'); throw '' }
+      }
+    } catch(e) { if (e) console.error(e) }
+    document.documentElement.style.visibility = ''
+  </script>
   <title>Product</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link rel="stylesheet" href="/src/style.css" />
@@ -138,7 +157,9 @@
           
           <div class="detail-actions">
             ${user 
-              ? `<button id="add-btn" class="btn-primary btn-large">Add to Cart</button>`
+              ? (p.stock === 0
+                  ? `<button class="btn-primary btn-large" disabled style="opacity:0.45;cursor:not-allowed;">Sold Out</button>`
+                  : `<button id="add-btn" class="btn-primary btn-large">Add to Cart</button>`)
               : `<a href="/login.html" class="btn-primary btn-large">Login to Purchase</a>`
             }
             <button id="wish-btn" class="btn-secondary btn-large">♥ Save</button>
@@ -179,7 +200,10 @@
     
     // Add to cart handler
     if (user) {
-      document.getElementById('add-btn').onclick = async () => {
+      const addBtn = document.getElementById('add-btn')
+      if (!addBtn) { /* sold out – no button */ }
+      else addBtn.onclick = async () => {
+        if (p.stock === 0) { document.getElementById('msg').textContent = 'This product is out of stock.'; return }
         const msg = document.getElementById('msg')
         msg.textContent = 'Adding...'
         msg.className = 'action-message'

@@ -1,7 +1,26 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <script>
+    // Admin guard — hide page immediately, redirect admin to admin panel
+    document.documentElement.style.visibility = 'hidden'
+  </script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const _gc = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    try {
+      const { data } = await _gc.auth.getSession()
+      const user = data.session?.user
+      if (user) {
+        const { data: prof } = await _gc.from('profiles').select('is_admin, email').eq('id', user.id).single()
+        const isAdmin = prof?.is_admin === true || user.email === ADMIN_EMAIL
+        if (isAdmin) { location.replace('/admin.html'); throw '' }
+      }
+    } catch(e) { if (e) console.error(e) }
+    document.documentElement.style.visibility = ''
+  </script><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Wishlist – Arduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">

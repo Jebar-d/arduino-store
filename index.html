@@ -2,6 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    // Admin guard — hide page immediately, redirect admin to admin panel
+    document.documentElement.style.visibility = 'hidden'
+  </script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const _gc = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    try {
+      const { data } = await _gc.auth.getSession()
+      const user = data.session?.user
+      if (user) {
+        const { data: prof } = await _gc.from('profiles').select('is_admin, email').eq('id', user.id).single()
+        const isAdmin = prof?.is_admin === true || user.email === ADMIN_EMAIL
+        if (isAdmin) { location.replace('/admin.html'); throw '' }
+      }
+    } catch(e) { if (e) console.error(e) }
+    document.documentElement.style.visibility = ''
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arduino Store – Premium Components for Makers</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
@@ -505,11 +524,13 @@
       grid.innerHTML = prods.map((p, i) => {
         const inWL = wishlistSet.has(p.id)
         const stockBadge = p.stock === 0 ? '<span style="background:rgba(255,68,68,0.15);color:#ff6b6b;font-size:0.7rem;padding:2px 6px;border-radius:10px;">Out of Stock</span>'
-          : p.stock < 5 ? `<span style="background:rgba(255,170,0,0.15);color:#ffaa00;font-size:0.7rem;padding:2px 6px;border-radius:10px;">Only ${p.stock} left</span>` : ''
-        return `<a href="/product-detail.html?slug=${p.slug}" class="featured-card" style="animation-delay:${i*0.08}s">
+          : p.stock < 5 ? '<span style="background:rgba(255,170,0,0.15);color:#ffaa00;font-size:0.7rem;padding:2px 6px;border-radius:10px;">Only ' + p.stock + ' left</span>' : ''
+        const soldOutBadge = p.stock === 0 ? '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;border-radius:inherit;"><span style="background:#f87171;color:#fff;font-weight:800;font-size:0.78rem;padding:0.35rem 0.85rem;border-radius:99px;letter-spacing:0.08em;">SOLD OUT</span></div>' : ''
+        return `<a href="/product-detail.html?slug=${p.slug}" class="featured-card" style="animation-delay:${i*0.08}s${p.stock===0?';opacity:0.75':''}">
           <div class="featured-image">
             <img src="${p.img_url||'/public/product.png'}" alt="${p.name}" loading="lazy">
             <div class="featured-badge">${p.model_url?'3D':'NEW'}</div>
+            ${soldOutBadge}
           </div>
           <div class="featured-content">
             <h3>${p.name}</h3>
@@ -517,7 +538,7 @@
             ${stockBadge}
             <div class="featured-price">₱${(p.price_cents/100).toFixed(2)}</div>
             <div class="featured-footer">
-              <button onclick="event.preventDefault();location.href='/product-detail.html?slug=${p.slug}'">View Details</button>
+              <button onclick="event.preventDefault();location.href='/product-detail.html?slug=${p.slug}'">${p.stock===0?'View Product':'View Details'}</button>
               <button class="wishlist-btn${inWL?' active':''}" onclick="event.preventDefault();toggleWishlist(this,'${p.id}')" title="${inWL?'Remove from wishlist':'Add to wishlist'}">${heartIcon(inWL)}</button>
             </div>
           </div>

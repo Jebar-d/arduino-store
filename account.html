@@ -1,7 +1,22 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const _gc = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+    // Admin guard – redirect admin away from store pages
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    _gc.auth.getSession().then(async ({ data }) => {
+      const user = data.session?.user
+      if (!user) return
+      const { data: prof } = await _gc.from('profiles').select('is_admin').eq('id', user.id).single()
+      if (prof?.is_admin === true || user.email === ADMIN_EMAIL) {
+        document.documentElement.style.visibility = 'hidden'
+        location.replace('/admin.html')
+      }
+    })
+  </script><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>My Account – Arduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -174,8 +189,6 @@
           <span class="acct-nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>My Vouchers</a>
         <a href="#addresses" data-tab="addresses">
           <span class="acct-nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>Addresses</a>
-        <a href="#payment" data-tab="payment">
-          <span class="acct-nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>Banks &amp; Cards</a>
         <a href="#security" data-tab="security">
           <span class="acct-nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>Change Password</a>
       </nav>
@@ -272,13 +285,13 @@
           <div class="account-card">
             <h3>Profile Information</h3>
             <div class="form-grid">
-              <div class="fg"><label>First Name</label><input id="pf-fname" value="${escHtml(profile.first_name||'')}" placeholder="Juan"></div>
-              <div class="fg"><label>Middle Name</label><input id="pf-mname" value="${escHtml(profile.middle_name||'')}" placeholder="Santos"></div>
-              <div class="fg"><label>Last Name</label><input id="pf-lname" value="${escHtml(profile.last_name||'')}" placeholder="Dela Cruz"></div>
+              <div class="fg"><label>First Name</label><input id="pf-fname" value="${escHtml(profile.first_name||'')}" placeholder="Juan" oninput="filterName(this)"></div>
+              <div class="fg"><label>Middle Name</label><input id="pf-mname" value="${escHtml(profile.middle_name||'')}" placeholder="Santos" oninput="filterName(this)"></div>
+              <div class="fg"><label>Last Name</label><input id="pf-lname" value="${escHtml(profile.last_name||'')}" placeholder="Dela Cruz" oninput="filterName(this)"></div>
               <div class="fg"><label>Suffix</label><input id="pf-suffix" value="${escHtml(profile.suffix||'')}" placeholder="Jr., III…"></div>
               <div class="fg full"><label>Username</label><input id="pf-uname" value="${escHtml(profile.username||'')}" placeholder="juandelacruz"></div>
               <div class="fg full"><label>Email</label><input value="${escHtml(user.email)}" disabled></div>
-              <div class="fg full"><label>Contact Number</label><input id="pf-phone" value="${escHtml(profile.contact_number||'')}" placeholder="+63 9XX XXX XXXX"></div>
+              <div class="fg full"><label>Contact Number <small style="font-weight:400;color:var(--text2)">(11–13 digits)</small></label><input id="pf-phone" value="${escHtml(profile.contact_number||'')}" placeholder="09123456789" oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,13)" maxlength="13"></div>
               <div class="fg full"><label>Default Address</label><textarea id="pf-addr">${escHtml(profile.address||'')}</textarea></div>
             </div>
             <button class="btn-primary" style="margin-top:1.25rem;padding:0.75rem 2rem;" id="save-btn">Save Changes</button>
@@ -305,7 +318,7 @@
       /* PURCHASES */
       else if (tab === 'purchases') {
         const { data: orders, error } = await supa
-          .from('orders').select('*, order_items(*, products(name, img_url))')
+          .from('orders').select('*, order_items(*, products(name, img_url, price_cents))')
           .eq('user_id', user.id).order('created_at', { ascending: false })
         if (error) { main.innerHTML = `<div class="account-card"><p style="color:var(--error)">Failed to load orders: ${error.message}</p></div>`; return }
         if (!orders?.length) {
@@ -317,24 +330,81 @@
             </div></div>`; return
         }
         const stMap = { pending:'pending', processing:'processing', shipped:'shipped', delivered:'delivered', cancelled:'cancelled' }
-        main.innerHTML = `<div class="account-card"><h3>My Purchases (${orders.length})</h3>
-          ${orders.map(o => {
-            const img = o.order_items?.[0]?.products?.img_url || '/public/product.png'
-            const st = stMap[o.status] || 'pending'
-            return `<div class="purchase-item">
-              <img src="${img}" alt="Order" onerror="this.src='/public/product.png'">
-              <div class="p-info">
-                <div class="p-name">Order #${o.id.substring(0,8).toUpperCase()}</div>
-                <div class="p-date">${new Date(o.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</div>
-                <div style="color:var(--text2);font-size:0.77rem;margin-top:2px;">${o.order_items?.length||0} item(s) · ₱${(o.total_cents/100).toFixed(2)}</div>
-              </div>
-              <div style="text-align:right;flex-shrink:0;">
-                <span class="p-badge ${st}">${(o.status||'pending').toUpperCase()}</span>
-                ${o.status==='delivered'?`<div style="margin-top:0.4rem;"><a href="/order-complete.html" style="font-size:0.77rem;color:var(--primary);">Rate &amp; Review</a></div>`:''}
-              </div>
-            </div>`
-          }).join('')}
-        </div>`
+        const payLabels = { cod:'Cash on Delivery', gcash:'GCash', maya:'Maya', card:'Credit/Debit Card' }
+        const shipLabels = { standard:'Standard (3-5 days)', express:'Express (1-2 days)', free:'Free Shipping' }
+        main.innerHTML = `
+          <style>
+            .order-row { border:1px solid var(--border); border-radius:var(--radius); margin-bottom:0.85rem; overflow:hidden; }
+            .order-row-header { display:flex; gap:1rem; align-items:center; padding:1rem 1.1rem; cursor:pointer; background:var(--surface-light); transition:background 0.15s; user-select:none; }
+            .order-row-header:hover { background:rgba(119,207,207,0.06); }
+            .order-row-header img { width:50px; height:50px; object-fit:contain; border-radius:6px; background:var(--surface); flex-shrink:0; }
+            .order-expand-icon { margin-left:auto; flex-shrink:0; transition:transform 0.25s; color:var(--text2); }
+            .order-row.open .order-expand-icon { transform:rotate(180deg); }
+            .order-details { display:none; padding:1.1rem; border-top:1px solid var(--border); background:var(--surface); }
+            .order-row.open .order-details { display:block; }
+            .receipt-item { display:flex; gap:0.75rem; align-items:center; padding:0.55rem 0; border-bottom:1px solid var(--border); font-size:0.86rem; }
+            .receipt-item:last-child { border-bottom:none; }
+            .receipt-item img { width:38px; height:38px; object-fit:contain; border-radius:4px; background:var(--surface-light); flex-shrink:0; }
+            .receipt-totals { margin-top:0.85rem; border-top:1px solid var(--border); padding-top:0.75rem; }
+            .receipt-row { display:flex; justify-content:space-between; font-size:0.83rem; padding:0.2rem 0; color:var(--text2); }
+            .receipt-row.total { font-weight:700; font-size:0.92rem; color:var(--text); padding-top:0.4rem; border-top:1px solid var(--border); margin-top:0.3rem; }
+            .receipt-meta { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 1.5rem; margin-bottom:1rem; }
+            .receipt-meta-item .lbl { color:var(--text2); margin-bottom:1px; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; }
+            .receipt-meta-item .val { color:var(--text); font-weight:600; font-size:0.83rem; }
+            [data-theme="light"] .order-row-header { background:var(--card-bg); }
+            [data-theme="light"] .order-row-header:hover { background:rgba(8,145,178,0.05); }
+            [data-theme="light"] .order-details { background:#fff; }
+          </style>
+          <div class="account-card">
+            <h3>My Purchases (${orders.length})</h3>
+            ${orders.map(o => {
+              const img = o.order_items?.[0]?.products?.img_url || '/public/product.png'
+              const st = stMap[o.status] || 'pending'
+              const addr = o.shipping_address || {}
+              const shipping = o.shipping_method === 'express' ? 24900 : o.shipping_method === 'free' ? 0 : 9900
+              const itemsTotal = o.order_items?.reduce((s,i)=>s+(i.price_cents||0)*i.qty,0)||0
+              const discount = Math.max(0, itemsTotal + shipping - o.total_cents)
+              return `<div class="order-row" id="order-${o.id}">
+                <div class="order-row-header" onclick="toggleOrder('${o.id}')">
+                  <img src="${img}" alt="Order" onerror="this.src='/public/product.png'">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:0.9rem;color:var(--text);">Order #${o.id.substring(0,8).toUpperCase()}</div>
+                    <div style="color:var(--text2);font-size:0.77rem;margin-top:2px;">${new Date(o.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})} &middot; ${o.order_items?.length||0} item(s) &middot; &#8369;${(o.total_cents/100).toFixed(2)}</div>
+                  </div>
+                  <span class="p-badge ${st}">${(o.status||'pending').toUpperCase()}</span>
+                  <svg class="order-expand-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="order-details">
+                  <div class="receipt-meta">
+                    <div class="receipt-meta-item"><div class="lbl">Order ID</div><div class="val">#${o.id.substring(0,8).toUpperCase()}</div></div>
+                    <div class="receipt-meta-item"><div class="lbl">Date</div><div class="val">${new Date(o.created_at).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'})}</div></div>
+                    <div class="receipt-meta-item"><div class="lbl">Payment</div><div class="val">${payLabels[o.payment_method]||o.payment_method||'--'}</div></div>
+                    <div class="receipt-meta-item"><div class="lbl">Shipping</div><div class="val">${shipLabels[o.shipping_method]||o.shipping_method||'--'}</div></div>
+                    ${addr.address ? `<div class="receipt-meta-item" style="grid-column:1/-1"><div class="lbl">Delivery Address</div><div class="val" style="font-weight:500;">${escHtml(addr.name||'')}${addr.name?', ':''}${escHtml(addr.address||'')}${addr.city?', '+escHtml(addr.city):''}${addr.province?', '+escHtml(addr.province):''}</div></div>` : ''}
+                    ${o.expected_delivery ? `<div class="receipt-meta-item"><div class="lbl">Est. Delivery</div><div class="val">${new Date(o.expected_delivery).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</div></div>` : ''}
+                  </div>
+                  <div style="font-size:0.78rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem;">Items</div>
+                  ${o.order_items?.map(item => `
+                    <div class="receipt-item">
+                      <img src="${item.products?.img_url||'/public/product.png'}" onerror="this.src='/public/product.png'">
+                      <div style="flex:1;">${escHtml(item.product_name||item.products?.name||'Product')}</div>
+                      <div style="color:var(--text2);margin-right:0.75rem;">x${item.qty}</div>
+                      <div style="font-weight:600;min-width:72px;text-align:right;">&#8369;${((item.price_cents||0)*item.qty/100).toFixed(2)}</div>
+                    </div>`).join('')||''}
+                  <div class="receipt-totals">
+                    <div class="receipt-row"><span>Subtotal</span><span>&#8369;${(itemsTotal/100).toFixed(2)}</span></div>
+                    ${discount>0?`<div class="receipt-row"><span>Discount</span><span style="color:var(--success)">&#8722;&#8369;${(discount/100).toFixed(2)}</span></div>`:''}
+                    <div class="receipt-row"><span>Shipping</span><span>${shipping===0?'FREE':'&#8369;'+(shipping/100).toFixed(2)}</span></div>
+                    <div class="receipt-row total"><span>Total Paid</span><span style="color:var(--primary)">&#8369;${(o.total_cents/100).toFixed(2)}</span></div>
+                  </div>
+                  ${o.status==='delivered'?`<div style="margin-top:1rem;"><a href="/order-complete.html" style="font-size:0.82rem;color:var(--primary);font-weight:600;">&#9733; Rate &amp; Review &rarr;</a></div>`:''}
+                </div>
+              </div>`
+            }).join('')}
+          </div>`
+        window.toggleOrder = (id) => {
+          document.getElementById(`order-${id}`)?.classList.toggle('open')
+        }
       }
 
       /* NOTIFICATIONS */
@@ -356,7 +426,7 @@
             </div>`).join('')
           : `<div class="empty-state">
               <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <h4>No notifications yet</h4><p>We'll notify you about orders and promos.</p>
+              <h4>No notifications yet</h4><p>We will notify you about orders and promos.</p>
             </div>`}
         </div>`
       }
@@ -375,7 +445,7 @@
               <div class="voucher-pct">${pr.is_free_shipping ? SHIP_BIG : pr.discount_percent+'%'}</div>
               <div style="flex:1;">
                 <div class="v-code">${pr.code}</div>
-                <div class="v-desc">${escHtml(pr.description || (pr.is_free_shipping ? 'Free shipping on qualifying orders' : `${pr.discount_percent}% off your order`))}</div>
+                <div class="v-desc">${escHtml(pr.description || (pr.is_free_shipping ? 'Free shipping on qualifying orders' : pr.discount_percent+'% off your order'))}</div>
                 <div class="v-expiry">${CLOCK} Expires: ${new Date(pr.valid_until).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</div>
               </div>
               <button data-code="${pr.code}" class="copy-voucher-btn" style="background:var(--primary);color:#000;border:none;border-radius:var(--radius-sm);padding:0.5rem 0.9rem;font-weight:700;cursor:pointer;font-size:0.82rem;white-space:nowrap;">Copy</button>
@@ -388,41 +458,89 @@
         document.querySelectorAll('.copy-voucher-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const code = btn.getAttribute('data-code')
-            navigator.clipboard?.writeText(code).then(() => showToast('Copied!', `Code ${code} ready to use.`, 'success', 2000))
+            navigator.clipboard?.writeText(code).then(() => showToast('Copied!', 'Code '+code+' ready to use.', 'success', 2000))
           })
         })
       }
 
       /* ADDRESSES */
       else if (tab === 'addresses') {
-        main.innerHTML = `<div class="account-card">
-          <h3>Saved Addresses</h3>
-          <div class="addr-card">
-            <span class="addr-default">DEFAULT</span>
-            <div style="font-weight:600;color:var(--text);">${escHtml([profile.first_name,profile.last_name].filter(Boolean).join(' ')||'Name not set')}</div>
-            <div style="color:var(--text2);font-size:0.9rem;margin-top:0.3rem;line-height:1.5;">${escHtml(profile.address||'No address saved yet.')}</div>
-            ${profile.contact_number?`<div style="color:var(--text2);font-size:0.85rem;margin-top:0.2rem;">${escHtml(profile.contact_number)}</div>`:''}
-          </div>
-          <p style="color:var(--text2);font-size:0.84rem;">
-            To update your address, go to your
-            <a href="#profile" style="color:var(--primary);" id="go-profile-link">Profile</a>.
-          </p></div>`
-        document.getElementById('go-profile-link').addEventListener('click', e => { e.preventDefault(); history.replaceState(null,'','#profile'); switchTab('profile') })
+        const { data: pd } = await supa.from('profiles').select('*').eq('id', user.id).single()
+        const savedProfile = pd || profile
+        let extraAddresses = []
+        try { extraAddresses = JSON.parse(savedProfile.extra_addresses || '[]') } catch(e) {}
+
+        const renderAddressesTab = () => {
+          main.innerHTML = `
+            <style>
+              .addr-list-card { border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; margin-bottom:0.85rem; background:var(--surface-light); position:relative; }
+              .addr-list-card.default-addr { border-color:rgba(119,207,207,0.4); background:rgba(119,207,207,0.04); }
+              [data-theme="light"] .addr-list-card { background:var(--card-bg); }
+              [data-theme="light"] .addr-list-card.default-addr { background:rgba(8,145,178,0.04); border-color:rgba(8,145,178,0.3); }
+            </style>
+            <div class="account-card">
+              <h3>Saved Addresses</h3>
+              <div class="addr-list-card default-addr">
+                <span class="addr-default">DEFAULT</span>
+                <div style="font-weight:700;color:var(--text);margin-bottom:0.25rem;">${escHtml([savedProfile.first_name,savedProfile.last_name].filter(Boolean).join(' ')||'Name not set')}</div>
+                <div style="color:var(--text2);font-size:0.88rem;line-height:1.5;">${escHtml(savedProfile.address||'No address saved yet.')}</div>
+                ${savedProfile.contact_number?`<div style="color:var(--text2);font-size:0.82rem;margin-top:0.25rem;">&#128222; ${escHtml(savedProfile.contact_number)}</div>`:''}
+                <div style="margin-top:0.6rem;"><a href="#" style="font-size:0.8rem;color:var(--primary);" onclick="event.preventDefault();history.replaceState(null,'','#profile');switchTab('profile')">Edit default &rarr;</a></div>
+              </div>
+              ${extraAddresses.map((addr,i) => `
+                <div class="addr-list-card" id="addr-extra-${i}">
+                  <div style="font-weight:700;color:var(--text);margin-bottom:0.25rem;">${escHtml(addr.name||'')}</div>
+                  <div style="color:var(--text2);font-size:0.88rem;line-height:1.5;">${escHtml(addr.address||'')}${addr.city?', '+escHtml(addr.city):''}${addr.province?', '+escHtml(addr.province):''}${addr.zip?' '+escHtml(addr.zip):''}</div>
+                  ${addr.phone?`<div style="color:var(--text2);font-size:0.82rem;margin-top:0.25rem;">&#128222; ${escHtml(addr.phone)}</div>`:''}
+                  <button onclick="deleteExtraAddress(${i})" style="position:absolute;top:0.75rem;right:0.75rem;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.25);color:#f87171;border-radius:6px;padding:0.25rem 0.6rem;cursor:pointer;font-size:0.75rem;">Remove</button>
+                </div>`).join('')}
+              <div class="account-card" style="margin-top:1rem;border-style:dashed;">
+                <h3 style="font-size:0.9rem;">+ Add New Address</h3>
+                <div class="form-grid">
+                  <div class="fg"><label>First Name *</label><input id="na-fname" placeholder="Juan" oninput="filterName(this)"></div>
+                  <div class="fg"><label>Last Name *</label><input id="na-lname" placeholder="Dela Cruz" oninput="filterName(this)"></div>
+                  <div class="fg"><label>Middle Name</label><input id="na-mname" placeholder="Santos" oninput="filterName(this)"></div>
+                  <div class="fg"><label>Suffix <small style="font-weight:400">(optional)</small></label><input id="na-suffix" placeholder="Jr., III…"></div>
+                  <div class="fg full"><label>Address Line *</label><input id="na-addr" placeholder="House/Unit, Street, Barangay"></div>
+                  <div class="fg"><label>City</label><input id="na-city" placeholder="Manila"></div>
+                  <div class="fg"><label>Province</label><input id="na-prov" placeholder="Metro Manila"></div>
+                  <div class="fg"><label>ZIP</label><input id="na-zip" placeholder="1000" maxlength="4" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                  <div class="fg"><label>Phone (11-13 digits)</label><input id="na-phone" placeholder="09123456789" oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,13)" maxlength="13"></div>
+                </div>
+                <button class="btn-primary" style="margin-top:1rem;padding:0.65rem 1.5rem;font-size:0.88rem;" onclick="saveNewAddress()">Save Address</button>
+              </div>
+            </div>`
+
+          window.deleteExtraAddress = async (i) => {
+            extraAddresses.splice(i, 1)
+            await supa.from('profiles').upsert({ id: user.id, extra_addresses: JSON.stringify(extraAddresses) })
+            showToast('Removed', 'Address removed.', 'info', 2000)
+            renderAddressesTab()
+          }
+
+          window.saveNewAddress = async () => {
+            const fname = document.getElementById('na-fname').value.trim()
+            const lname = document.getElementById('na-lname').value.trim()
+            const mname = document.getElementById('na-mname').value.trim()
+            const suffix= document.getElementById('na-suffix').value.trim()
+            const addr  = document.getElementById('na-addr').value.trim()
+            const city  = document.getElementById('na-city').value.trim()
+            const prov  = document.getElementById('na-prov').value.trim()
+            const zip   = document.getElementById('na-zip').value.trim()
+            const phone = document.getElementById('na-phone').value.trim()
+            if (!fname || !lname || !addr || !city) { showToast('Missing fields', 'First name, last name, address, and city are required.', 'error'); return }
+            if (phone && !/^[0-9]{11,13}$/.test(phone)) { showToast('Invalid phone', 'Enter 11 to 13 digits.', 'error'); return }
+            const name = [fname, mname, lname, suffix].filter(Boolean).join(' ')
+            extraAddresses.push({ name, address: addr, city, province: prov, zip, phone })
+            await supa.from('profiles').upsert({ id: user.id, extra_addresses: JSON.stringify(extraAddresses) })
+            showToast('Saved!', 'New address added.', 'success', 2500)
+            renderAddressesTab()
+          }
+        }
+        renderAddressesTab()
       }
 
-      /* PAYMENT */
-      else if (tab === 'payment') {
-        main.innerHTML = `<div class="account-card">
-          <h3>Banks &amp; Cards</h3>
-          <p style="color:var(--text2);font-size:0.88rem;margin-bottom:1.5rem;">Manage your saved payment methods for faster checkout.</p>
-          <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:2.5rem;text-align:center;color:var(--text2);">
-            <div style="display:flex;justify-content:center;margin-bottom:0.75rem;opacity:0.4;">${CARD_BIG}</div>
-            <p style="margin-bottom:1rem;">No saved payment methods yet.</p>
-            <button onclick="showToast('Coming Soon','Payment method saving is coming soon!','info')" class="btn-primary" style="padding:0.65rem 1.5rem;font-size:0.9rem;">+ Add Payment Method</button>
-          </div></div>`
-      }
-
-      /* SECURITY */
+            /* SECURITY */
       else if (tab === 'security') {
         main.innerHTML = `<div class="account-card">
           <h3>Change Password</h3>
@@ -456,6 +574,11 @@
           document.getElementById('con-pass').value = ''
         })
       }
+    }
+
+    /* Name input filter – letters, spaces, hyphens, apostrophes */
+    window.filterName = function(el) {
+      el.value = el.value.replace(/[^a-zA-Z\u00C0-\u024F \-']/g, '')
     }
 
     /* HTML escape helper to prevent XSS in templates */

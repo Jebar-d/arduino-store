@@ -59,15 +59,15 @@
         <div class="form-row three-col">
           <div class="form-group">
             <label for="first_name">First Name *</label>
-            <input id="first_name" placeholder="John" required>
+            <input id="first_name" placeholder="John" required oninput="this.value=this.value.replace(/[^a-zA-Z\u00C0-\u024F '\-]/g,'')">
           </div>
           <div class="form-group">
             <label for="middle_name">Middle Name</label>
-            <input id="middle_name" placeholder="M">
+            <input id="middle_name" placeholder="M" oninput="this.value=this.value.replace(/[^a-zA-Z\u00C0-\u024F '\-]/g,'')">
           </div>
           <div class="form-group">
             <label for="last_name">Last Name *</label>
-            <input id="last_name" placeholder="Doe" required>
+            <input id="last_name" placeholder="Doe" required oninput="this.value=this.value.replace(/[^a-zA-Z\u00C0-\u024F '\-]/g,'')">
           </div>
         </div>
 
@@ -86,12 +86,12 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="contact">Contact Number * <small style="color:var(--text2);font-weight:400;">(digits only)</small></label>
+            <label for="contact">Contact Number * <small style="color:var(--text2);font-weight:400;">(11–13 digits)</small></label>
             <input id="contact" type="tel" placeholder="09123456789" required
-              oninput="this.value=this.value.replace(/[^0-9+\-\s]/g,'')"
-              pattern="[0-9+\-\s]{7,15}"
-              title="Please enter a valid phone number (digits only)">
-            <small id="contact-hint" style="color:var(--text2);font-size:0.75rem;margin-top:3px;display:block;">e.g. 09123456789 or +639123456789</small>
+              oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,13)"
+              maxlength="13"
+              title="Please enter 11 to 13 digits (e.g. 09123456789)">
+            <small id="contact-hint" style="color:var(--text2);font-size:0.75rem;margin-top:3px;display:block;">e.g. 09123456789 (11 digits)</small>
           </div>
         </div>
 
@@ -304,8 +304,8 @@
       }
 
       // Contact number validation - digits, +, -, spaces only
-      if (!/^[0-9+\-\s]{7,15}$/.test(contact)) {
-        showToast('Invalid contact', 'Please enter a valid phone number (digits only).', 'error')
+      if (!/^[0-9]{11,13}$/.test(contact)) {
+        showToast('Invalid contact', 'Please enter 11 to 13 digits (e.g. 09123456789).', 'error')
         return
       }
 

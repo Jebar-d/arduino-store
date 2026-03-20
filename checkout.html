@@ -1,7 +1,26 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <script>
+    // Admin guard — hide page immediately, redirect admin to admin panel
+    document.documentElement.style.visibility = 'hidden'
+  </script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const _gc = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    try {
+      const { data } = await _gc.auth.getSession()
+      const user = data.session?.user
+      if (user) {
+        const { data: prof } = await _gc.from('profiles').select('is_admin, email').eq('id', user.id).single()
+        const isAdmin = prof?.is_admin === true || user.email === ADMIN_EMAIL
+        if (isAdmin) { location.replace('/admin.html'); throw '' }
+      }
+    } catch(e) { if (e) console.error(e) }
+    document.documentElement.style.visibility = ''
+  </script><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Checkout – Arduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -91,6 +110,19 @@
     const { data: cartItems } = await supa.from('cart_items').select('*, products(*)').eq('user_id', session.user.id)
     if (!cartItems?.length) { location.href='/cart.html'; throw '' }
 
+    // Block checkout if any item is out of stock
+    const outOfStock = cartItems.filter(i => i.products.stock === 0)
+    if (outOfStock.length) {
+      document.getElementById('checkout-body').innerHTML = `
+        <div style="text-align:center;padding:3rem 1rem;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);">
+          <div style="font-size:2rem;margin-bottom:0.75rem;">⚠️</div>
+          <h3 style="color:var(--text);margin-bottom:0.5rem;">Out-of-Stock Items in Cart</h3>
+          <p style="color:var(--text2);margin-bottom:1.25rem;">The following items are sold out:<br><strong style="color:var(--error)">${outOfStock.map(i=>i.products.name).join(', ')}</strong></p>
+          <a href="/cart.html" class="btn-primary" style="display:inline-block;padding:0.75rem 2rem;">← Return to Cart</a>
+        </div>`
+      throw ''
+    }
+
     const appliedPromo = JSON.parse(sessionStorage.getItem('applied_promo')||'null')
     let subtotal = cartItems.reduce((s,i)=>s+i.products.price_cents*i.qty,0)
     let discount = appliedPromo ? Math.round(subtotal*appliedPromo.pct/100) : 0
@@ -98,6 +130,32 @@
     let selectedPayment  = 'gcash'
 
     const { data: profile } = await supa.from('profiles').select('*').eq('id',session.user.id).single()
+
+    // Build the list of all saved addresses (default first, then extras)
+    let extraAddresses = []
+    try { extraAddresses = JSON.parse(profile?.extra_addresses || '[]') } catch(e) {}
+    const defaultAddr = {
+      name: [profile?.first_name, profile?.last_name].filter(Boolean).join(' '),
+      address: profile?.address || '',
+      city: profile?.city || '',
+      province: profile?.province || '',
+      zip: profile?.zip || '',
+      phone: profile?.contact_number || ''
+    }
+    const savedAddresses = [defaultAddr, ...extraAddresses]
+
+    window.applySavedAddress = (i) => {
+      const a = savedAddresses[i]
+      if (!a) return
+      const parts = (a.name||'').trim().split(' ')
+      document.getElementById('fname').value = parts[0] || ''
+      document.getElementById('lname').value = parts.slice(1).join(' ') || ''
+      document.getElementById('addr').value = a.address || ''
+      document.getElementById('city').value = a.city || ''
+      document.getElementById('province').value = a.province || ''
+      document.getElementById('zip').value = a.zip || ''
+      document.getElementById('phone').value = a.phone || ''
+    }
 
     render()
 
@@ -127,14 +185,21 @@
             <!-- Address -->
             <div class="checkout-section">
               <h3><span class="step-num">1</span>Delivery Address</h3>
+              ${savedAddresses.length > 1 ? `
+              <div style="margin-bottom:1rem;">
+                <label style="font-size:0.82rem;font-weight:600;color:var(--text2);display:block;margin-bottom:0.5rem;">Use a saved address:</label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+                  ${savedAddresses.map((a,i) => `<button type="button" onclick="applySavedAddress(${i})" style="padding:0.4rem 0.85rem;border-radius:20px;border:1px solid var(--border);background:var(--surface-light);color:var(--text2);font-size:0.78rem;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">${i===0?'Default: ':''} ${a.name||a.address?.substring(0,25)+'...'}</button>`).join('')}
+                </div>
+              </div>` : ''}
               <div class="form-grid">
-                <div class="form-group"><label>First Name *</label><input id="fname" value="${profile?.first_name||''}" placeholder="Juan"></div>
-                <div class="form-group"><label>Last Name *</label><input id="lname" value="${profile?.last_name||''}" placeholder="Dela Cruz"></div>
+                <div class="form-group"><label>First Name *</label><input id="fname" value="${profile?.first_name||''}" placeholder="Juan" oninput="this.value=this.value.replace(/[^a-zA-Z\u00C0-\u024F \-']/g,'')"></div>
+                <div class="form-group"><label>Last Name *</label><input id="lname" value="${profile?.last_name||''}" placeholder="Dela Cruz" oninput="this.value=this.value.replace(/[^a-zA-Z\u00C0-\u024F \-']/g,'')"></div>
                 <div class="form-group full"><label>Address *</label><input id="addr" value="${profile?.address||''}" placeholder="House/Unit No., Street, Barangay"></div>
-                <div class="form-group"><label>City *</label><input id="city" placeholder="Manila"></div>
-                <div class="form-group"><label>Province</label><input id="province" placeholder="Metro Manila"></div>
-                <div class="form-group"><label>ZIP Code</label><input id="zip" placeholder="1000"></div>
-                <div class="form-group full"><label>Contact Number *</label><input id="phone" value="${profile?.contact_number||''}" placeholder="+63 9XX XXX XXXX"></div>
+                <div class="form-group"><label>City *</label><input id="city" value="${profile?.city||''}" placeholder="Manila"></div>
+                <div class="form-group"><label>Province</label><input id="province" value="${profile?.province||''}" placeholder="Metro Manila"></div>
+                <div class="form-group"><label>ZIP Code</label><input id="zip" value="${profile?.zip||''}" placeholder="1000" maxlength="4" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                <div class="form-group full"><label>Contact Number * <small style="font-weight:400;color:var(--text2)">(11-13 digits)</small></label><input id="phone" value="${profile?.contact_number||''}" placeholder="09123456789" oninput="this.value=this.value.replace(/[^0-9]/g,'').substring(0,13)" maxlength="13"></div>
                 <div class="form-group full"><label>Order Notes (optional)</label><textarea id="notes" placeholder="Special instructions…"></textarea></div>
               </div>
             </div>
@@ -258,6 +323,9 @@
       const phone = document.getElementById('phone')?.value.trim()
       if (!fname||!lname||!addr||!city||!phone) {
         showToast('Missing info','Please fill all required fields.','error'); return
+      }
+      if (!/^[0-9]{11,13}$/.test(phone)) {
+        showToast('Invalid phone','Please enter 11 to 13 digits (e.g. 09123456789).','error'); return
       }
 
       const btn = document.getElementById('place-order-btn')

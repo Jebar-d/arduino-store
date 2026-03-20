@@ -1,7 +1,26 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <script>
+    // Admin guard — hide page immediately, redirect admin to admin panel
+    document.documentElement.style.visibility = 'hidden'
+  </script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+    const _gc = createClient('https://tyhocgrjwxswxzzfvwct.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5aG9jZ3Jqd3hzd3h6emZ2d2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1Mjc2MzcsImV4cCI6MjA4MzEwMzYzN30.UqmldkZ-MYBoeDJYKCOPgWi9-06S5w1-w4g-7qAUZKE')
+    const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+    try {
+      const { data } = await _gc.auth.getSession()
+      const user = data.session?.user
+      if (user) {
+        const { data: prof } = await _gc.from('profiles').select('is_admin, email').eq('id', user.id).single()
+        const isAdmin = prof?.is_admin === true || user.email === ADMIN_EMAIL
+        if (isAdmin) { location.replace('/admin.html'); throw '' }
+      }
+    } catch(e) { if (e) console.error(e) }
+    document.documentElement.style.visibility = ''
+  </script><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cart – Arduino Store</title>
   <link rel="icon" type="image/png" href="/public/logo2.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -118,10 +137,30 @@
         await renderCart()
       }
 
-      window.removeItem = async (id) => {
-        await supa.from('cart_items').delete().eq('id', id)
-        showToast('Removed', 'Item removed from cart.', 'info', 2000)
-        await renderCart()
+      window.removeItem = (id) => {
+        const overlay = document.createElement('div')
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);'
+        overlay.innerHTML = `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem 2rem;max-width:360px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.4);text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(248,113,113,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#f87171" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </div>
+            <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.4rem;">Remove Item?</h3>
+            <p style="color:var(--text2);font-size:0.88rem;margin-bottom:1.5rem;line-height:1.5;">This item will be removed from your cart.</p>
+            <div style="display:flex;gap:0.75rem;justify-content:center;">
+              <button id="confirm-cancel-btn" style="padding:0.6rem 1.5rem;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-weight:600;cursor:pointer;font-size:0.88rem;">Cancel</button>
+              <button id="confirm-delete-btn" style="padding:0.6rem 1.5rem;background:var(--error);border:none;border-radius:var(--radius-sm);color:#fff;font-weight:600;cursor:pointer;font-size:0.88rem;">Remove</button>
+            </div>
+          </div>`
+        document.body.appendChild(overlay)
+        document.getElementById('confirm-cancel-btn').onclick = () => overlay.remove()
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove() }
+        document.getElementById('confirm-delete-btn').onclick = async () => {
+          overlay.remove()
+          await supa.from('cart_items').delete().eq('id', id)
+          showToast('Removed', 'Item removed from cart.', 'info', 2000)
+          await renderCart()
+        }
       }
 
       window.applyPromo = async () => {

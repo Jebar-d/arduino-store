@@ -167,7 +167,10 @@
       }
 
       showToast('Welcome back!', 'You are now signed in. Redirecting...', 'success')
-      setTimeout(function() { location.href = '/' }, 1200)
+      const ADMIN_EMAIL = 'akosibbear38@gmail.com'
+      const { data: prof } = await supa.from('profiles').select('is_admin').eq('id', res.data.user.id).single()
+      const isAdmin = prof?.is_admin === true || res.data.user.email === ADMIN_EMAIL
+      setTimeout(function() { location.href = isAdmin ? '/admin.html' : '/' }, 1200)
     }
 
     // Allow Enter key
